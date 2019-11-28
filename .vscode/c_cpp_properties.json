@@ -3,6 +3,7 @@
         {
             "name": "Win32",
             "includePath": [
+                "C:\\Users\\totti\\Documents\\Arduino\\libraries\\ArduinoJson\\src",
                 "C:\\Users\\totti\\Documents\\Arduino\\libraries\\PubSubClient\\src",
                 "C:\\Users\\totti\\Documents\\Arduino\\libraries\\TinyGSM\\src",
                 "C:\\Users\\totti\\Documents\\Arduino\\libraries\\Adafruit_Unified_Sensor",

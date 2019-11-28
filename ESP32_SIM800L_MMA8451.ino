@@ -4,6 +4,7 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_MMA8451.h>
+#include <ArduinoJson.h>
 
 // Your GPRS credentials (leave empty, if missing)
 const char apn[]      = ""; // Your APN
