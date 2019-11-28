@@ -31,21 +31,51 @@ const char simPIN[]   = "7526"; // SIM card PIN code, if any
 
 #define SerialAT  Serial1
 #define SerialUSB Serial
+#define LED_PIN   13
+#define STACK_SIZE 200
 
 // Defines for testing
-#define TEST_ACC false
-#define TEST_SIM true
+#define TEST_ACC  false
+#define TEST_SIM  true
 #define TEST_MQTT true
+#define TEST_TIMER false
+#define TEST_CORE false
 
 TinyGsm       modem(SerialAT);
 TinyGsmClient client(modem);
 PubSubClient  mqtt(client);
 
-static const char *broker = "mastap.net"; //"broker.hivemq.com";// 
+static int32_t timerCounter = 0;
+
+//StaticTask_t xTaskBuffer;
+//StackType_t xStack[ STACK_SIZE ];
+xTaskHandle core0TaskHandle;
+
+static const char *broker = "mastap.net"; //"broker.hivemq.com"; //"mastap.net"; //"broker.hivemq.com";// 
 static long lastReconnectAttempt = 0;
 static bool apnConnected = false;
 
 Adafruit_MMA8451 mma = Adafruit_MMA8451();
+hw_timer_t *timer    = NULL;
+
+void IRAM_ATTR onTimer() {
+  Serial.print("time: ");
+  Serial.print(millis() / 1000);
+  Serial.print("; counter: ");
+  Serial.println(timerCounter);
+  timerCounter++;
+}
+
+void core0Test(void *parameter) {
+  for (;;) {
+    Serial.print("This task runs on core: ");
+    Serial.println(xPortGetCoreID());
+    digitalWrite(LED_PIN, HIGH);
+    delay(1000);
+    digitalWrite(LED_PIN, LOW);
+    delay(1000);
+  }
+}
 
 bool mqttConnect() {
   Serial.print("Connecting to mqtt broker: ");
@@ -63,8 +93,11 @@ bool mqttConnect() {
   return mqtt.connected();
 }
 
+
+
 void setup () {
   Serial.begin(115200);
+
 
 #if TEST_ACC
   if (! mma.begin()) {
@@ -73,8 +106,23 @@ void setup () {
   }
   Serial.println("MMA8451 found!");
   mma.setRange(MMA8451_RANGE_2_G);
+
   Serial.print("Range = "); Serial.print(2 << mma.getRange());  
   Serial.println("G");
+#endif
+
+#if TEST_TIMER
+  timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer, onTimer, true);
+  timerAlarmWrite(timer, 2*1000000, true);
+  timerAlarmEnable(timer);
+#endif
+
+#if TEST_CORE
+  pinMode(LED_PIN, OUTPUT);
+  Serial.print("Stack: ");
+  xTaskCreatePinnedToCore(core0Test, "Core_0_Test", 1000, NULL, 1, &core0TaskHandle, 0);
+  Serial.println("Task created");
 #endif
 
 #if TEST_SIM
@@ -100,6 +148,9 @@ void setup () {
   if (strlen(simPIN) && modem.getSimStatus() != 3 ) {
     Serial.println("Unlocking sim card");
     bool ret = modem.simUnlock(simPIN);
+    delay(1000);
+    Serial.print("SIM status: ");
+    uint8_t simStatus = modem.getSimStatus();
     Serial.println(ret);
   }
   Serial.print("SIM status: ");
@@ -173,23 +224,31 @@ void loop() {
 #endif
 
 #if TEST_MQTT
-  if (!mqtt.connected() && modem.isGprsConnected()) {
-    Serial.println("=== MQTT NOT CONNECTED ===");
+  while (!mqtt.connected() && modem.isGprsConnected()) {
     // Reconnect every 10 seconds
     unsigned long t = millis();
+    Serial.println(t, DEC);
     if (t - lastReconnectAttempt > 10000L) {
       lastReconnectAttempt = t;
       if (mqttConnect()) {
         lastReconnectAttempt = 0;
-        Serial.println("mqtt connected");
       }
       else {
+        lastReconnectAttempt = 0;
         Serial.println("Retrying..");
+        Serial.println(t, DEC);
+        Serial.println(lastReconnectAttempt, DEC);
       }
     }
     delay(100);
-    return;
   }
+  Serial.println("mqtt connected");
+  const char message[] = "Hello World";
+  bool ret = mqtt.publish("ngd/demo/lv001/data", message, sizeof(message));
+  Serial.print("Publish ");
+  Serial.println(ret ? " OK" : " Failed");
+  delay(60000);
+  return;
 
   mqtt.loop();
 #endif
