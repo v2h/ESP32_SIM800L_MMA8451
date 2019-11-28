@@ -41,6 +41,7 @@ const char simPIN[]   = "7526"; // SIM card PIN code, if any
 #define TEST_MQTT true
 #define TEST_TIMER false
 #define TEST_CORE false
+#define TEST_JSON 1
 
 TinyGsm       modem(SerialAT);
 TinyGsmClient client(modem);
@@ -245,10 +246,30 @@ void loop() {
   }
   Serial.println("mqtt connected");
   const char message[] = "Hello World";
-  bool ret = mqtt.publish("ngd/demo/lv001/data", message, sizeof(message));
-  Serial.print("Publish ");
-  Serial.println(ret ? " OK" : " Failed");
-  delay(60000);
+
+  if (TEST_JSON) {
+    Serial.println("Jsonizing..");
+    const int capacity=JSON_OBJECT_SIZE(3);
+    StaticJsonDocument<capacity>doc;
+    char buffer[128];
+    doc["value"]=42;
+    doc["lat"]=48.748010;
+    doc["lon"]=2.293491;
+    size_t n = serializeJson(doc, buffer);
+    Serial.print("Size of payload: "); Serial.println(n);
+    bool ret = mqtt.publish("ngd/demo/lv002/data", buffer, n);
+    Serial.print("Publish ");
+    Serial.println(ret ? " OK" : " Failed");
+    delay(30000);
+  }
+  else 
+  {
+    bool ret = mqtt.publish("ngd/demo/lv001/data", message, sizeof(message));
+    Serial.print("Publish ");
+    Serial.println(ret ? " OK" : " Failed");
+    delay(60000);
+  }
+
   return;
 
   mqtt.loop();
