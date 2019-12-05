@@ -1,7 +1,8 @@
 {
-    "board": "esp32:esp32:esp32",
-    "configuration": "PSRAM=disabled,PartitionScheme=default,CPUFreq=240,FlashMode=qio,FlashFreq=80,FlashSize=4M,UploadSpeed=921600,DebugLevel=none",
+    "board": "esp32:esp32:esp32wrover",
+    "configuration": "PartitionScheme=default,FlashMode=qio,FlashFreq=80,UploadSpeed=921600,DebugLevel=none",
     "programmer": "AVRISP mkII",
-    "port": "COM12",
-    "sketch": "ESP32_SIM800L_MMA8451_Arduino.ino"
+    "port": "COM15",
+    "sketch": "ESP32_SIM800L_MMA8451.ino",
+    "output": "build"
 }
