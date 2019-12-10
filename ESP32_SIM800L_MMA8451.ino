@@ -181,7 +181,13 @@ void setupSensor() {
 }
 
 void setupMQTT() {
-  while (!mqtt.connected() && modem.isGprsConnected()) {
+  while(!modem.isGprsConnected()) {
+    Serial.println(F("connecting to gprs"));
+    modem.gprsConnect(apn, gprsUser, gprsPass);
+    delay(1000);
+  }
+  while (!mqtt.connected()) {
+    Serial.println(F("connecting to mqtt"));
     // Reconnect every 10 seconds
     unsigned long t = millis();
     //Serial.println(t, DEC);
