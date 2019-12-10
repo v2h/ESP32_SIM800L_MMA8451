@@ -49,6 +49,7 @@ TinyGsmClient client(modem);
 PubSubClient  mqtt(client);
 mma8451_t sensor;
 bool intFlag = false;
+bool timerSet = false;
 
 static int32_t timerCounter = 0;
 
