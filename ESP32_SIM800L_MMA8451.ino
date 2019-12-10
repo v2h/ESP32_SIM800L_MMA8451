@@ -40,7 +40,7 @@ const char simPIN[]   = "";//"7526"; // SIM card PIN code, if any
 #define TEST_ACC   false
 #define TEST_SIM   false
 #define TEST_MQTT  false
-#define TEST_TIMER false
+#define TEST_TIMER true
 #define TEST_CORE  false
 #define TEST_JSON  false
 
@@ -128,7 +128,9 @@ void setupModem() {
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
   delay(3000);
   Serial.println(F("initializing modem"));
-  modem.restart(); // or modem.init();
+  bool ret = modem.restart(); // or modem.init();
+  if (!ret) Serial.println(F("modem restart failed"));
+  delay(3000);
 
   String modemInfo = modem.getModemInfo();
   Serial.print(F("Modem: "));
@@ -222,16 +224,31 @@ void setupMQTT() {
   Serial.println(F("mqtt connected"));
 }
 
+void publishMQTT(const uint8_t *buffer, uint32_t bytesTotal, uint16_t bytesPerWrite) {
+  Serial.println(F("Publishing.."));
+  bool ret;
+  ret = mqtt.beginPublish("ngd/demo/gprs001/data", bytesTotal, false); 
+  Serial.print(F("ret")); Serial.println(ret ? " OK" : " Failed");
+  uint8_t *pointerToBuffer = (uint8_t *)buffer;
+  Serial.print(F("0. bytes remaining: ")); Serial.println(bytesTotal);
+  while (bytesTotal) {
+    uint16_t bytesToWrite = (bytesTotal > bytesTotal % bytesPerWrite ? bytesPerWrite : bytesTotal % bytesPerWrite);
+    uint16_t wrote = mqtt.write(pointerToBuffer, bytesToWrite);
+    bytesTotal -= wrote;
+    pointerToBuffer += wrote;
+    Serial.print(F("bytes remaining: ")); Serial.println(bytesTotal);
+    mqtt.loop();
+    //yield();
+  }
+  ret = mqtt.endPublish(); 
+  Serial.print(F("ret")); Serial.println(ret ? " OK" : " Failed");
+  mqtt.disconnect();
+  Serial.println(F("Done publishing"));
+}
+
 void setup () {
   Serial.begin(115200);
   Serial.println(F("Here we go"));
-
-#if TEST_TIMER
-  timer = timerBegin(0, 80, true);
-  timerAttachInterrupt(timer, onTimer, true);
-  timerAlarmWrite(timer, 2*1000000, true);
-  timerAlarmEnable(timer);
-#endif
 
 #if TEST_CORE
   pinMode(LED_PIN, OUTPUT);
@@ -239,28 +256,35 @@ void setup () {
   xTaskCreatePinnedToCore(core0Test, "Core_0_Test", 1000, NULL, 1, &core0TaskHandle, 0);
   Serial.println(F("Task created"));
 #endif
+
+
   setupSensor();
-  pinMode(INT_PIN, INPUT_PULLDOWN);
-  attachInterrupt(INT_PIN, accInterrupt, RISING);
   setupModem();
   mqtt.setServer(broker, 1883);
+#if TEST_TIMER
+  Serial.println(F("Ininitalizing timer"));
+  startTimer();
+#endif
+
+  pinMode(INT_PIN, INPUT_PULLDOWN);
+  attachInterrupt(INT_PIN, accInterrupt, RISING);
 }
 
+
 void loop() {
-  //attachInterrupt(INT_PIN, accInterrupt, RISING);
-
-  // MMA8451_readData(&sensor);
-  // Serial.print(F("x: ")); Serial.print(F((float)sensor.data.x/2048); Serial.print(F("; "));
-  // Serial.print(F("y: ")); Serial.print(F((float)sensor.data.y/2048); Serial.print(F("; "));
-  // Serial.print(F("z: ")); Serial.print(F((float)sensor.data.z/2048); Serial.print(F("; "));
-  // Serial.println();
-
-  // uint8_t intSource = MMA8451_getInterruptSource(&sensor);
-  // Serial.print(F("int src: ")); Serial.println(intSource, BIN);
   Serial.print(F("."));
-  if (intFlag) {
-    intFlag = false;
+  if (intFlag || timerSet) {
+    if (intFlag) {
+      Serial.println(F("\nacceleration interrupt"));
+      intFlag = false;
+    } 
+    if (timerSet) {
+      Serial.println(F("\ntimer interrupt"));
+      timerSet = false;
+    }
+  
     detachInterrupt(INT_PIN);
+    endTimer();
     
     Serial.println();
     delay(100);
@@ -269,8 +293,8 @@ void loop() {
 
     const uint16_t BUFFER_SIZE = 1024;
 
-    uint32_t heapSize = esp_get_free_heap_size();
-    Serial.print(F("Free heap size: ")); Serial.println(heapSize);
+    // uint32_t heapSize = esp_get_free_heap_size();
+    // Serial.print(F("Free heap size: ")); Serial.println(heapSize);
 
     const size_t capacity = 4*JSON_ARRAY_SIZE(BUFFER_SIZE) + JSON_OBJECT_SIZE(5) + 50;
     DynamicJsonDocument doc(capacity);
@@ -278,8 +302,12 @@ void loop() {
     JsonArray y = doc.createNestedArray("yba");
     JsonArray z = doc.createNestedArray("zba");
     JsonArray t = doc.createNestedArray("tba");
-    doc["timestamp"] = modem.getGSMDateTime(DATE_TIME);
-    Serial.print(F("timestamp: ")); Serial.println(modem.getGSMDateTime(DATE_TIME));
+    String location = modem.getGsmLocation();
+    Serial.print(F("location: ")); Serial.println(location);
+    uint8_t index = location.lastIndexOf(',');
+    String timeStamp = location.substring(index+1);
+    Serial.print(F("timestamp: ")); Serial.println(timeStamp);
+    doc["timestamp"] = timeStamp;
 
     uint32_t startTime = millis();
     uint32_t newTime, oldTime;
@@ -307,10 +335,10 @@ void loop() {
     Serial.print(F("Stop time: ")); 
     Serial.println(newTime);
 
-    heapSize = esp_get_free_heap_size();
-    Serial.print(F("Free heap size: ")); Serial.println(heapSize);
-    Serial.print(F("JSON cap: ")); Serial.println(capacity);
-    Serial.print(F("JSON size :")); Serial.println(doc.size());
+    // heapSize = esp_get_free_heap_size();
+    // Serial.print(F("Free heap size: ")); Serial.println(heapSize);
+    // Serial.print(F("JSON cap: ")); Serial.println(capacity);
+    // Serial.print(F("JSON size :")); Serial.println(doc.size());
 
     char *buffer = (char *)malloc(capacity);
     uint16_t n = measureMsgPack(doc);
@@ -318,46 +346,22 @@ void loop() {
     Serial.print(F("Size of payload: ")); Serial.println(n);
     Serial.print(F("Bytes serialized: ")); Serial.println(bytesSerialized);
 
-    heapSize = esp_get_free_heap_size();
-    Serial.print(F("Free heap size: ")); Serial.println(heapSize);
+    // heapSize = esp_get_free_heap_size();
+    // Serial.print(F("Free heap size: ")); Serial.println(heapSize);
 
     setupMQTT();
-
-    Serial.println(F("Publishing.."));
-    bool ret;
-    ret = mqtt.beginPublish("ngd/demo/gprs001/data", n, false); 
-    Serial.print(F("ret")); Serial.println(ret ? " OK" : " Failed");
-    uint16_t bytesRemaining = n;
-    uint8_t *pointerToBuffer = (uint8_t *)buffer;
-    Serial.print(F("0. bytes remaining: ")); Serial.println(bytesRemaining);
-    while (bytesRemaining) {
-      uint16_t bytesToWrite = (bytesRemaining > n % 512 ? 512 : n % 512);
-      Serial.print(F("bytes to write:")); Serial.println(bytesToWrite);
-      uint16_t wrote = mqtt.write(pointerToBuffer, bytesToWrite);
-      Serial.print(F("wrote ")); Serial.println(wrote);
-      bytesRemaining -= wrote;
-      pointerToBuffer += wrote;
-      Serial.print(F("bytes remaining: ")); Serial.println(bytesRemaining);
-      //mqtt.loop();
-    }
-    ret = mqtt.endPublish(); 
-    Serial.print(F("ret")); Serial.println(ret ? " OK" : " Failed");
-
-    Serial.print(F("ret")); Serial.println(ret ? " OK" : " Failed");
-    Serial.println(F("Done publishing"));
-
-    pointerToBuffer = NULL;
+    publishMQTT((uint8_t *)buffer, bytesSerialized, 1024);
     free(buffer);
     buffer = NULL;
-    
+
     Serial.print(F("MQTT connected: ")); Serial.println(mqtt.connected() ? "YES" : "NO");
-    attachInterrupt(INT_PIN, accInterrupt, RISING);
     Serial.print(F("FF_MT_SRC: ")); Serial.println(MMA8451_getMotionSource(&sensor), BIN);
-    Serial.print(F("INT_SRC: "));Serial.println(MMA8451_getInterruptSource(&sensor), BIN);
     delay(100);
-    Serial.print(F("FF_MT_SRC: ")); Serial.println(MMA8451_getMotionSource(&sensor), BIN);
     Serial.print(F("INT_SRC: "));Serial.println(MMA8451_getInterruptSource(&sensor), BIN);
-    //delay(20000);
+    
+    digitalWrite(INT_PIN, 0);
+    attachInterrupt(INT_PIN, accInterrupt, RISING);
+    startTimer();
   }
   delay(100); 
 }
