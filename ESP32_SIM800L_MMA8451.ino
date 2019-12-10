@@ -65,11 +65,20 @@ static bool apnConnected = false;
 hw_timer_t *timer    = NULL;
 
 void IRAM_ATTR onTimer() {
-  Serial.print(F("time: "));
-  Serial.print(F(millis() / 1000));
-  Serial.print(F("; counter: "));
-  Serial.println(timerCounter);
   timerCounter++;
+  timerSet = true;
+}
+
+void startTimer() {
+  timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer, onTimer, true);
+  timerAlarmWrite(timer, 60*1000000, true);
+  timerAlarmEnable(timer);
+}
+
+void endTimer() {
+  timerEnd(timer);
+  timer = NULL; 
 }
 
 void IRAM_ATTR accInterrupt() {
