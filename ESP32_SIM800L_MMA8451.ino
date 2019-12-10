@@ -73,8 +73,9 @@ void IRAM_ATTR onTimer() {
 }
 
 void IRAM_ATTR accInterrupt() {
-  Serial.println(F("Interruptted"));
+  detachInterrupt(INT_PIN);
   intFlag = true;
+  Serial.println(F("\nInterruptted"));
 }
 
 void core0Test(void *parameter) {
