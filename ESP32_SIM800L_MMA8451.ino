@@ -64,10 +64,36 @@ static bool apnConnected = false;
 
 //Adafruit_MMA8451 mma = Adafruit_MMA8451();
 hw_timer_t *timer    = NULL;
+hw_timer_t *wdt      = NULL;
+const uint32_t wdtTimeout_s = 40*1000000;
+
+const uint16_t BUFFER_SIZE = 1024;
+const size_t capacity = 4*JSON_ARRAY_SIZE(BUFFER_SIZE) + JSON_OBJECT_SIZE(5) + 128;
+//static char buffer[capacity];
+
+#define I2C_SDA                     21
+#define I2C_SCL                     22
+#define IP5306_ADDR                 0x75
+#define IP5306_REG_SYS_CTL0         0x00
+bool setPowerBoostKeepOn(int en)
+{
+    Wire.beginTransmission(IP5306_ADDR);
+    Wire.write(IP5306_REG_SYS_CTL0);
+    if (en)
+        Wire.write(0x37); // Set bit1: 1 enable 0 disable boost keep on
+    else
+        Wire.write(0x35); // 0x37 is default reg value
+    return Wire.endTransmission() == 0;
+}
 
 void IRAM_ATTR onTimer() {
   timerCounter++;
   timerSet = true;
+}
+
+void IRAM_ATTR resetModule() {
+  Serial.println("\nrebooting\n");
+  esp_restart();
 }
 
 void startTimer() {
@@ -77,12 +103,29 @@ void startTimer() {
   timerAlarmEnable(timer);
 }
 
+void startWatchDog() {
+  wdt = timerBegin(1, 80, true);
+  timerAttachInterrupt(wdt, &resetModule, true);
+  timerAlarmWrite(wdt, wdtTimeout_s, false);
+  timerAlarmEnable(wdt);
+}
+
+void feedWatchDog() {
+  timerWrite(wdt, 0);
+}
+
+void endWatchDog() {
+  timerEnd(wdt);
+  wdt = NULL;
+}
+
 void endTimer() {
   timerEnd(timer);
   timer = NULL; 
 }
 
 void IRAM_ATTR accInterrupt() {
+  MMA8451_getMotionSource(&sensor);
   detachInterrupt(INT_PIN);
   intFlag = true;
   Serial.println(F("\nInterruptted"));
@@ -238,7 +281,7 @@ void publishMQTT(const uint8_t *buffer, uint32_t bytesTotal, uint16_t bytesPerWr
     pointerToBuffer += wrote;
     Serial.print(F("bytes remaining: ")); Serial.println(bytesTotal);
     mqtt.loop();
-    //yield();
+    yield();
   }
   ret = mqtt.endPublish(); 
   Serial.print(F("ret")); Serial.println(ret ? " OK" : " Failed");
@@ -246,9 +289,23 @@ void publishMQTT(const uint8_t *buffer, uint32_t bytesTotal, uint16_t bytesPerWr
   Serial.println(F("Done publishing"));
 }
 
+void memoryInfo(void) {
+  uint32_t heapSize = esp_get_free_heap_size();
+  Serial.print(F("esp_get_free_heap_size: ")); Serial.println(heapSize);
+  heapSize = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
+  Serial.print(F("heap_caps_get_largest_free_block MALLOC_CAP_SPIRAM: ")); Serial.println(heapSize);
+}
+
 void setup () {
   Serial.begin(115200);
   Serial.println(F("Here we go"));
+  
+  /*
+  Wire.begin(I2C_SDA, I2C_SCL);
+  bool   isOk = setPowerBoostKeepOn(1);
+  String info = "IP5306 KeepOn " + String((isOk ? "PASS" : "FAIL"));
+  Serial.println(info);
+  */
 
 #if TEST_CORE
   pinMode(LED_PIN, OUTPUT);
@@ -272,7 +329,6 @@ void setup () {
 
 
 void loop() {
-  Serial.print(F("."));
   if (intFlag || timerSet) {
     if (intFlag) {
       Serial.println(F("\nacceleration interrupt"));
@@ -291,17 +347,43 @@ void loop() {
 
     sensors_event_t event;
 
-    const uint16_t BUFFER_SIZE = 1024;
+    
+    Serial.print(F("capacity: ")); Serial.println((uint32_t)capacity);
+    Serial.println(F("Creating dynamic json doc"));
 
-    // uint32_t heapSize = esp_get_free_heap_size();
-    // Serial.print(F("Free heap size: ")); Serial.println(heapSize);
-
-    const size_t capacity = 4*JSON_ARRAY_SIZE(BUFFER_SIZE) + JSON_OBJECT_SIZE(5) + 50;
     DynamicJsonDocument doc(capacity);
-    JsonArray x = doc.createNestedArray("xba");
-    JsonArray y = doc.createNestedArray("yba");
-    JsonArray z = doc.createNestedArray("zba");
+    //StaticJsonDocument<capacity> doc;
+    JsonArray x = doc.createNestedArray("x-accel");
+    JsonArray y = doc.createNestedArray("y-accel");
+    JsonArray z = doc.createNestedArray("z-accel");
     JsonArray t = doc.createNestedArray("tba");
+
+    for (uint16_t index = 0; index  < BUFFER_SIZE; index++) {
+      uint32_t startTime = millis();
+      while (millis() - startTime < 10);  
+      MMA8451_readData(&sensor);
+      /*
+      x.add((float)sensor.data.x/2048); // 4G -> 2048
+      y.add((float)sensor.data.y/2048);
+      z.add((float)sensor.data.z/2048);
+      t.add(index);
+      */
+     x.add(sensor.data.x);
+     y.add(sensor.data.y);
+     z.add(sensor.data.z);
+     t.add(index);
+
+    if (index % 100 == 0) {
+        Serial.print(F("Index: ")); Serial.print(index);
+        Serial.print(F(" at: ")); Serial.println(startTime);
+      }
+    }
+    Serial.print(F("Stop time: ")); Serial.println(millis());
+
+    startWatchDog();
+    setupMQTT(); 
+    feedWatchDog();
+
     String location = modem.getGsmLocation();
     Serial.print(F("location: ")); Serial.println(location);
     uint8_t index = location.lastIndexOf(',');
@@ -309,59 +391,27 @@ void loop() {
     Serial.print(F("timestamp: ")); Serial.println(timeStamp);
     doc["timestamp"] = timeStamp;
 
-    uint32_t startTime = millis();
-    uint32_t newTime, oldTime;
-    newTime = oldTime = startTime;
-
-    Serial.print(F("Start time: ")); 
-    Serial.println(startTime);
-    for (uint16_t index = 0; index  < BUFFER_SIZE; index++) {
-      while (newTime - oldTime < 10) {
-        newTime = millis();
-      }
-      oldTime = newTime;
-    
-      MMA8451_readData(&sensor);
-      x.add((float)sensor.data.x/2048);
-      y.add((float)sensor.data.y/2048);
-      z.add((float)sensor.data.z/2048);
-      t.add(index);
-
-      if (index % 100 == 0) {
-        Serial.print(F("Index: ")); Serial.print(index);
-        Serial.print(F(" at: ")); Serial.println(newTime);
-      }
-    }
-    Serial.print(F("Stop time: ")); 
-    Serial.println(newTime);
-
-    // heapSize = esp_get_free_heap_size();
-    // Serial.print(F("Free heap size: ")); Serial.println(heapSize);
-    // Serial.print(F("JSON cap: ")); Serial.println(capacity);
-    // Serial.print(F("JSON size :")); Serial.println(doc.size());
-
     char *buffer = (char *)malloc(capacity);
-    uint16_t n = measureMsgPack(doc);
-    uint16_t bytesSerialized = serializeMsgPack(doc, buffer, n + 1);
+    size_t n = measureMsgPack(doc);
+    size_t bytesSerialized = serializeMsgPack(doc, buffer, n + 128);
+    doc.clear();
     Serial.print(F("Size of payload: ")); Serial.println(n);
     Serial.print(F("Bytes serialized: ")); Serial.println(bytesSerialized);
 
-    // heapSize = esp_get_free_heap_size();
-    // Serial.print(F("Free heap size: ")); Serial.println(heapSize);
-
-    setupMQTT();
-    publishMQTT((uint8_t *)buffer, bytesSerialized, 1024);
+    publishMQTT((uint8_t *)buffer, bytesSerialized, 512);
     free(buffer);
     buffer = NULL;
+    feedWatchDog();
+    endWatchDog();
 
     Serial.print(F("MQTT connected: ")); Serial.println(mqtt.connected() ? "YES" : "NO");
     Serial.print(F("FF_MT_SRC: ")); Serial.println(MMA8451_getMotionSource(&sensor), BIN);
     delay(100);
     Serial.print(F("INT_SRC: "));Serial.println(MMA8451_getInterruptSource(&sensor), BIN);
     
+    //digitalRead(INT_PIN);
     digitalWrite(INT_PIN, 0);
     attachInterrupt(INT_PIN, accInterrupt, RISING);
     startTimer();
   }
-  delay(100); 
 }
