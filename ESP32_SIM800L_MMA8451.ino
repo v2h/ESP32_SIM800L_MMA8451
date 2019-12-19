@@ -75,6 +75,7 @@ const size_t capacity = 4*JSON_ARRAY_SIZE(BUFFER_SIZE) + JSON_OBJECT_SIZE(5) + 1
 #define I2C_SCL                     22
 #define IP5306_ADDR                 0x75
 #define IP5306_REG_SYS_CTL0         0x00
+
 bool setPowerBoostKeepOn(int en)
 {
     Wire.beginTransmission(IP5306_ADDR);
@@ -255,8 +256,6 @@ void setupMQTT() {
       else {
         lastReconnectAttempt = 0;
         Serial.println(F("Retrying.."));
-        Serial.println(t, DEC);
-        Serial.println(lastReconnectAttempt, DEC);
       }
     }
     delay(100);
