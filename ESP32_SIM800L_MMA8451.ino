@@ -4,8 +4,9 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 //#include <Adafruit_MMA8451.h>
-#include <ArduinoJson.h>
+//#include <ArduinoJson.h>
 #include "custom_src/MMA8451.h"
+#include "custom_src/mpack.h"
 
 // Your GPRS credentials (leave empty, if missing)
 const char apn[]      = "";//"iot.1nce.net";//""; // Your APN
@@ -37,12 +38,9 @@ const char simPIN[]   = "";//"7526"; // SIM card PIN code, if any
 #define STACK_SIZE 200
 
 // Defines for testing
-#define TEST_ACC   false
-#define TEST_SIM   false
 #define TEST_MQTT  false
 #define TEST_TIMER true
 #define TEST_CORE  false
-#define TEST_JSON  false
 
 TinyGsm       modem(SerialAT);
 TinyGsmClient client(modem);
@@ -67,8 +65,8 @@ hw_timer_t *timer    = NULL;
 hw_timer_t *wdt      = NULL;
 const uint32_t wdtTimeout_s = 40*1000000;
 
-const uint16_t BUFFER_SIZE = 1024;
-const size_t capacity = 4*JSON_ARRAY_SIZE(BUFFER_SIZE) + JSON_OBJECT_SIZE(5) + 128;
+const uint16_t BUFFER_SIZE = 2048;
+const size_t capacity = 40000; //4*JSON_ARRAY_SIZE(BUFFER_SIZE) + JSON_OBJECT_SIZE(5) + 128;
 //static char buffer[capacity];
 
 #define I2C_SDA                     21
@@ -100,7 +98,7 @@ void IRAM_ATTR resetModule() {
 void startTimer() {
   timer = timerBegin(0, 80, true);
   timerAttachInterrupt(timer, onTimer, true);
-  timerAlarmWrite(timer, 60*1000000, true);
+  timerAlarmWrite(timer, 120*1000000, true);
   timerAlarmEnable(timer);
 }
 
@@ -250,19 +248,13 @@ void setupMQTT() {
     //Serial.println(t, DEC);
     if (t - lastReconnectAttempt > 10000L) {
       lastReconnectAttempt = t;
-      if (mqttConnect()) {
-        lastReconnectAttempt = 0;
-      }
-      else {
+      if (!mqttConnect()) {
         lastReconnectAttempt = 0;
         Serial.println(F("Retrying.."));
       }
     }
-    delay(100);
   }
-
   Serial.println();
-
   Serial.println(F("mqtt connected"));
 }
 
@@ -298,13 +290,6 @@ void memoryInfo(void) {
 void setup () {
   Serial.begin(115200);
   Serial.println(F("Here we go"));
-  
-  /*
-  Wire.begin(I2C_SDA, I2C_SCL);
-  bool   isOk = setPowerBoostKeepOn(1);
-  String info = "IP5306 KeepOn " + String((isOk ? "PASS" : "FAIL"));
-  Serial.println(info);
-  */
 
 #if TEST_CORE
   pinMode(LED_PIN, OUTPUT);
@@ -343,36 +328,24 @@ void loop() {
     
     Serial.println();
     delay(100);
-
-    sensors_event_t event;
-
-    
+   
     Serial.print(F("capacity: ")); Serial.println((uint32_t)capacity);
-    Serial.println(F("Creating dynamic json doc"));
 
-    DynamicJsonDocument doc(capacity);
-    //StaticJsonDocument<capacity> doc;
-    JsonArray x = doc.createNestedArray("x-accel");
-    JsonArray y = doc.createNestedArray("y-accel");
-    JsonArray z = doc.createNestedArray("z-accel");
-    JsonArray t = doc.createNestedArray("tba");
+    int16_t *x = (int16_t *)malloc(BUFFER_SIZE * sizeof(int16_t));
+    int16_t *y = (int16_t *)malloc(BUFFER_SIZE * sizeof(int16_t));
+    int16_t *z = (int16_t *)malloc(BUFFER_SIZE * sizeof(int16_t));
+    uint16_t *t = (uint16_t *)malloc(BUFFER_SIZE * sizeof(uint16_t));
 
     for (uint16_t index = 0; index  < BUFFER_SIZE; index++) {
       uint32_t startTime = millis();
       while (millis() - startTime < 10);  
       MMA8451_readData(&sensor);
-      /*
-      x.add((float)sensor.data.x/2048); // 4G -> 2048
-      y.add((float)sensor.data.y/2048);
-      z.add((float)sensor.data.z/2048);
-      t.add(index);
-      */
-     x.add(sensor.data.x);
-     y.add(sensor.data.y);
-     z.add(sensor.data.z);
-     t.add(index);
+      x[index] = (sensor.data.x);
+      y[index] = (sensor.data.y);
+      z[index] = (sensor.data.z);
+      t[index] = (index);
 
-    if (index % 100 == 0) {
+      if (index % 100 == 0) {
         Serial.print(F("Index: ")); Serial.print(index);
         Serial.print(F(" at: ")); Serial.println(startTime);
       }
@@ -388,18 +361,60 @@ void loop() {
     uint8_t index = location.lastIndexOf(',');
     String timeStamp = location.substring(index+1);
     Serial.print(F("timestamp: ")); Serial.println(timeStamp);
-    doc["timestamp"] = timeStamp;
 
     char *buffer = (char *)malloc(capacity);
-    size_t n = measureMsgPack(doc);
-    size_t bytesSerialized = serializeMsgPack(doc, buffer, n + 128);
-    doc.clear();
-    Serial.print(F("Size of payload: ")); Serial.println(n);
+
+    Serial.println(F("check 1"));
+    mpack_writer_t writer;
+    mpack_writer_init(&writer, buffer, capacity);
+    mpack_start_map(&writer, 9);
+    mpack_write_cstr(&writer, "timestamp"); mpack_write_cstr(&writer, timeStamp.c_str());
+    mpack_write_cstr(&writer, "moduleID"); mpack_write_cstr(&writer, "GPRS010_0000001");
+    mpack_write_cstr(&writer, "msgtype"); mpack_write_u8(&writer, 2);
+    mpack_write_cstr(&writer, "format"); mpack_write_cstr(&writer, "Int16");
+    mpack_write_cstr(&writer, "freq"); mpack_write_u8(&writer, 200);
+
+    mpack_write_cstr(&writer, "x-accel");
+    mpack_write_tag(&writer, mpack_tag_make_array(BUFFER_SIZE));
+    Serial.println(F("check 2"));
+    for (uint16_t i = 0; i < BUFFER_SIZE; i++) {
+        mpack_write_i16(&writer, x[i]);
+    }
+    Serial.println(F("check 3"));
+    mpack_write_cstr(&writer, "y-accel");
+    mpack_write_tag(&writer, mpack_tag_make_array(BUFFER_SIZE));
+    for (uint16_t i = 0; i < BUFFER_SIZE; i++) {
+        mpack_write_i16(&writer, y[i]);
+    }
+    Serial.println(F("check 4"));
+    mpack_write_cstr(&writer, "z-accel");
+    mpack_write_tag(&writer, mpack_tag_make_array(BUFFER_SIZE));
+    for (uint16_t i = 0; i < BUFFER_SIZE; i++) {
+        mpack_write_i16(&writer, z[i]);
+    }
+    Serial.println(F("check 5"));
+    mpack_write_cstr(&writer, "tba");
+    mpack_write_tag(&writer, mpack_tag_make_array(BUFFER_SIZE));
+    for (uint16_t i = 0; i < BUFFER_SIZE; i++) {
+        mpack_write_i16(&writer, t[i]);
+    }
+    Serial.println(F("check 6"));
+
+    size_t bytesSerialized = mpack_writer_buffer_used(&writer);
+    mpack_finish_map(&writer);
     Serial.print(F("Bytes serialized: ")); Serial.println(bytesSerialized);
+    Serial.println(F("check 7"));
+
+    feedWatchDog();
 
     publishMQTT((uint8_t *)buffer, bytesSerialized, 512);
+
     free(buffer);
     buffer = NULL;
+    free(x); x = NULL; 
+    free(y); y = NULL; 
+    free(z); z = NULL; 
+    free(t); t = NULL;
     feedWatchDog();
     endWatchDog();
 
