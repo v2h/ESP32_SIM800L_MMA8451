@@ -3,8 +3,6 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
-//#include <Adafruit_MMA8451.h>
-//#include <ArduinoJson.h>
 #include "custom_src/MMA8451.h"
 #include "custom_src/mpack.h"
 
@@ -45,7 +43,7 @@ const char simPIN[]   = "";//"7526"; // SIM card PIN code, if any
 TinyGsm       modem(SerialAT);
 TinyGsmClient client(modem);
 PubSubClient  mqtt(client);
-mma8451_t sensor;
+mma8451_t     sensor;
 bool intFlag = false;
 bool timerSet = false;
 
@@ -66,8 +64,7 @@ hw_timer_t *wdt      = NULL;
 const uint32_t wdtTimeout_s = 40*1000000;
 
 const uint16_t BUFFER_SIZE = 2048;
-const size_t capacity = 40000; //4*JSON_ARRAY_SIZE(BUFFER_SIZE) + JSON_OBJECT_SIZE(5) + 128;
-//static char buffer[capacity];
+const size_t capacity      = 40000;
 
 #define I2C_SDA                     21
 #define I2C_SCL                     22
@@ -369,10 +366,10 @@ void loop() {
     mpack_writer_init(&writer, buffer, capacity);
     mpack_start_map(&writer, 9);
     mpack_write_cstr(&writer, "timestamp"); mpack_write_cstr(&writer, timeStamp.c_str());
-    mpack_write_cstr(&writer, "moduleID"); mpack_write_cstr(&writer, "GPRS010_0000001");
-    mpack_write_cstr(&writer, "msgtype"); mpack_write_u8(&writer, 2);
-    mpack_write_cstr(&writer, "format"); mpack_write_cstr(&writer, "Int16");
-    mpack_write_cstr(&writer, "freq"); mpack_write_u8(&writer, 200);
+    mpack_write_cstr(&writer, "moduleID");  mpack_write_cstr(&writer, "GPRS010_0000001");
+    mpack_write_cstr(&writer, "msgtype");   mpack_write_u8(&writer, 2);
+    mpack_write_cstr(&writer, "format");    mpack_write_cstr(&writer, "Int16");
+    mpack_write_cstr(&writer, "freq");      mpack_write_u8(&writer, 200);
 
     mpack_write_cstr(&writer, "x-accel");
     mpack_write_tag(&writer, mpack_tag_make_array(BUFFER_SIZE));
