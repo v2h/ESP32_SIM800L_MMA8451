@@ -90,7 +90,7 @@ mma8451_dataRate_t MMA8451_getDataRate(mma8451_t *const sensor);
 void MMA8451_setInterruptThreshold(mma8451_t *const sensor, uint16_t thresshold_mg);
 void MMA8451_setInterruptDuration(mma8451_t *const sensor, uint16_t duration_ms);
 
-void MMA8451_enableInterrupt(mma8451_t *const sensor, uint16_t thresshold_mg, uint16_t duration_ms, bool activeHigh);
+void MMA8451_enableInterrupt(mma8451_t *const sensor, uint16_t thresshold_mg, uint16_t duration_ms, bool usePin2, bool activeHigh);
 void MMA8451_disableInterrupt(mma8451_t *const sensor);
 void MMA8451_clearInterrupt(mma8451_t *const sensor);
 

@@ -72,7 +72,7 @@ void MMA8451_setInterruptDuration(mma8451_t *const sensor, uint16_t duration_ms)
   Serial.print("set duration: "); Serial.println(MMA8451_readReg8(sensor, MMA8451_REG_FF_MT_THS));
 }
 
-void MMA8451_enableInterrupt(mma8451_t *const sensor, uint16_t thresshold_mg, uint16_t duration_ms, bool activeHigh) {
+void MMA8451_enableInterrupt(mma8451_t *const sensor, uint16_t thresshold_mg, uint16_t duration_ms, bool usePin2,  bool activeHigh) {
   if (activeHigh) {
     MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG3, 0x02);
   }
@@ -80,8 +80,16 @@ void MMA8451_enableInterrupt(mma8451_t *const sensor, uint16_t thresshold_mg, ui
   MMA8451_setInterruptDuration(sensor, duration_ms);
   MMA8451_writeReg8(sensor, MMA8451_REG_FF_MT_CFG, 0xD8); // Motion interrupt
   MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG4, 0x04); // Freefall/motion interrupt output
-  MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG5, 0x04); // INT PIN 1
-  MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG1, 0x01 | 0x04); // active, 800Hz, low noise
+  if(!usePin2) {
+    MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG5, 0x04); // INT PIN 1
+  }
+  else {
+    MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG5, 0x00);
+  }
+  if (!sensor->_isActivated) {
+    MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG1, 0x01 | 0x04); // active, 800Hz, low noise
+    Serial.println(F("Activating sensor"));
+  }
 }
 
 uint8_t MMA8451_getInterruptSource(mma8451_t *const sensor) {
