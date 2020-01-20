@@ -71,6 +71,9 @@ typedef struct {
   uint8_t i2cAddress;
   mma8451_data_t data;
   // add more properties if need be
+
+  // private:
+  bool _isActivated;
 } mma8451_t;
 
 // **********************************************************
@@ -98,5 +101,7 @@ void MMA8451_clearInterrupt(mma8451_t *const sensor);
 
 uint8_t MMA8451_getInterruptSource(mma8451_t *const sensor);
 uint8_t MMA8451_getMotionSource(mma8451_t *const sensor);
+
+void MMA8451_activate(mma8451_t * const sensor);
 
 #endif // _MMA8451_H_

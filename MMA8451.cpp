@@ -42,6 +42,7 @@ bool MMA8451_begin(mma8451_t *const sensor) {
   if (deviceID != 0x1A) {
     return false;
   }
+  sensor->_isActivated = false;
   MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG1, 0); // standby mode
   MMA8451_writeReg8(sensor, MMA8451_REG_XYZ_DATA_CFG, MMA8451_RANGE_4_G); //range
   MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG2, 0x02); // hi res
@@ -98,4 +99,9 @@ uint8_t MMA8451_getInterruptSource(mma8451_t *const sensor) {
 
 uint8_t MMA8451_getMotionSource(mma8451_t *const sensor) {
   return MMA8451_readReg8(sensor, MMA8451_REG_FF_MT_SRC);
+}
+
+void MMA8451_activate(mma8451_t *const sensor) {
+  MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG1, 0x01 | 0x04); // active, 800Hz, low noise
+  sensor->_isActivated = true;
 }
