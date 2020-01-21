@@ -4,7 +4,7 @@
 #include "custom_src/MMA8451.h"
 
 //********************************************************************
-
+#define THRESHOLD_RESOLUTION_MG (63)
 // *******************************************************************
 static inline uint8_t MMA8451_i2cread(void) {
   return Wire.read();
@@ -64,16 +64,19 @@ void MMA8451_readData(mma8451_t *const sensor) {
 }
 
 void MMA8451_setInterruptThreshold(mma8451_t *const sensor, uint16_t thresshold_mg) {
-  MMA8451_writeReg8(sensor, MMA8451_REG_FF_MT_THS, (uint8_t)(thresshold_mg/63) & 0x7F);
-  Serial.print("set threshold: "); Serial.println(MMA8451_readReg8(sensor, MMA8451_REG_FF_MT_THS));
+  MMA8451_writeReg8(sensor, MMA8451_REG_FF_MT_THS, (uint8_t)(thresshold_mg/THRESHOLD_RESOLUTION_MG) & 0x7F);
+  Serial.print("set MMA8451_REG_FF_MT_THS: "); Serial.println(MMA8451_readReg8(sensor, MMA8451_REG_FF_MT_THS));
 }
 
 void MMA8451_setInterruptDuration(mma8451_t *const sensor, uint16_t duration_ms) {
-  MMA8451_writeReg8(sensor, MMA8451_REG_FF_MT_COUNT, (duration_ms*1000));
-  Serial.print("set duration: "); Serial.println(MMA8451_readReg8(sensor, MMA8451_REG_FF_MT_THS));
+  MMA8451_writeReg8(sensor, MMA8451_REG_FF_MT_COUNT, (duration_ms/1.25));
+  Serial.print("set MMA8451_REG_FF_MT_COUNT: "); Serial.println(MMA8451_readReg8(sensor, MMA8451_REG_FF_MT_COUNT));
 }
 
 void MMA8451_enableInterrupt(mma8451_t *const sensor, uint16_t thresshold_mg, uint16_t duration_ms, bool usePin2,  bool activeHigh) {
+  if (sensor->_isActivated) {
+    MMA8451_standby(sensor);
+  }
   if (activeHigh) {
     MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG3, 0x02);
   }
@@ -85,11 +88,10 @@ void MMA8451_enableInterrupt(mma8451_t *const sensor, uint16_t thresshold_mg, ui
     MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG5, 0x04); // INT PIN 1
   }
   else {
-    MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG5, 0x00);
+    MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG5, 0x00); // INT PIN 2
   }
   if (!sensor->_isActivated) {
     MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG1, 0x01 | 0x04); // active, 800Hz, low noise
-    Serial.println(F("Activating sensor"));
   }
 }
 
@@ -104,4 +106,11 @@ uint8_t MMA8451_getMotionSource(mma8451_t *const sensor) {
 void MMA8451_activate(mma8451_t *const sensor) {
   MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG1, 0x01 | 0x04); // active, 800Hz, low noise
   sensor->_isActivated = true;
+  Serial.println(F("Sensor activated"));
+}
+
+void MMA8451_standby(mma8451_t *const sensor) {
+  MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG1, 0); // Put sensor back in standby mode
+  sensor->_isActivated = false;
+  Serial.println(F("Sensor in standby"));
 }

@@ -103,5 +103,6 @@ uint8_t MMA8451_getInterruptSource(mma8451_t *const sensor);
 uint8_t MMA8451_getMotionSource(mma8451_t *const sensor);
 
 void MMA8451_activate(mma8451_t * const sensor);
+void MMA8451_standby(mma8451_t * const sensor);
 
 #endif // _MMA8451_H_
