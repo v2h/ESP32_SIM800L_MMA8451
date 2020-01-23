@@ -44,6 +44,7 @@ const char simPIN[]   = "";//"7526"; // SIM card PIN code, if any
 #define BUFFER_SIZE     (2048)
 #define PACKER_CAPACITY (40000)
 #define WDT_TIMEOUT_S   (40*1000000)
+#define MEASUREMENT_PER_MS (5)
 
 TinyGsm       g_modem(SerialAT);
 TinyGsmClient g_client(g_modem);
@@ -53,10 +54,16 @@ mma8451_t     g_sensor;
 hw_timer_t *g_timer    = NULL;
 hw_timer_t *g_wdt      = NULL;
 
-static const char *broker = "mastap.net";
+static const char *broker   = "mastap.net";
+static const char *topic    = "ngd/demo/HSRW_Balcony/data";
+static const char *moduleID = "Balcony001" ;
+static const char *subscribeTopic = "ngd/demo/HSRW_Balcony/command";
 
 static bool g_accelerometerInterruptFlag = false;
 static bool g_timerFlag = false;
+
+static uint16_t g_threshold = 500;
+static uint16_t g_duration  = 21;
 
 void IRAM_ATTR accelerometerISR();
 
@@ -131,7 +138,7 @@ void loop() {
 
     for (uint16_t index = 0; index  < BUFFER_SIZE; index++) {
       uint32_t startTime = millis();
-      while (millis() - startTime < 10);  
+      while (millis() - startTime < MEASUREMENT_PER_MS);  
       MMA8451_readData(&g_sensor);
       x[index] = (g_sensor.data.x);
       y[index] = (g_sensor.data.y);
@@ -165,7 +172,7 @@ void loop() {
     mpack_writer_init(&writer, buffer, PACKER_CAPACITY);
     mpack_start_map(&writer, 9);
     mpack_write_cstr(&writer, "timestamp"); mpack_write_cstr(&writer, timeStamp.c_str());
-    mpack_write_cstr(&writer, "moduleID");  mpack_write_cstr(&writer, "GPRS010_0000001");
+    mpack_write_cstr(&writer, "moduleID");  mpack_write_cstr(&writer, moduleID);
     mpack_write_cstr(&writer, "msgtype");   mpack_write_u8(&writer, 2);
     mpack_write_cstr(&writer, "format");    mpack_write_cstr(&writer, "Int16");
     mpack_write_cstr(&writer, "freq");      mpack_write_u8(&writer, 200);
@@ -353,7 +360,7 @@ void setupSensor() {
     Serial.println(F("Init failed"));
     while(1);
   }
-  MMA8451_enableInterrupt(&g_sensor, 200, 10, false, true);
+  MMA8451_enableInterrupt(&g_sensor, g_threshold, g_duration, true, true);
 }
 
 void IRAM_ATTR accelerometerISR() {
@@ -403,7 +410,7 @@ void endTimer() {
 void publishMQTT(const uint8_t *buffer, uint32_t bytesTotal, uint16_t bytesPerWrite) {
   Serial.println(F("Publishing.."));
   bool ret;
-  ret = g_mqtt.beginPublish("ngd/demo/gprs001/data", bytesTotal, false); 
+  ret = g_mqtt.beginPublish(topic, bytesTotal, false); 
   Serial.print(F("ret")); Serial.println(ret ? " OK" : " Failed");
   uint8_t *pointerToBuffer = (uint8_t *)buffer;
   Serial.print(F("0. bytes remaining: ")); Serial.println(bytesTotal);
