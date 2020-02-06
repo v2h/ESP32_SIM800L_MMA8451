@@ -3,6 +3,7 @@
         {
             "name": "Win32",
             "includePath": [
+                "C:\\Users\\vhv\\Documents\\Arduino\\libraries\\FastLED",
                 "C:\\Users\\vhv\\Documents\\Arduino\\libraries\\ArduinoJson\\src",
                 "C:\\Users\\vhv\\Documents\\Arduino\\libraries\\PubSubClient\\src",
                 "C:\\Users\\vhv\\Documents\\Arduino\\libraries\\TinyGSM\\src",

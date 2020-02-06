@@ -1,4 +1,3 @@
-#include <Arduino.h>
 // https://github.com/Xinyuan-LilyGO/TTGO-T-Call
 // https://pubsubclient.knolleary.net/api.html for pubsubclient
 
@@ -6,8 +5,9 @@
 #include <Wire.h>
 #include "custom_src/MMA8451.h"
 #include "custom_src/mpack.h"
+#include <FastLED.h>
 
-#define TGO_BOARD
+//#define TGO_BOARD
 
 // Your GPRS credentials (leave empty, if missing)
 const char apn[]      = "";//"iot.1nce.net";//""; // Your APN
@@ -34,8 +34,8 @@ const char simPIN[]   = "";//"7526"; // SIM card PIN code, if any
 #define I2C_SCL 22
 
 #define INT_PIN   15
-#define LED_GREEN 18 //14
-#define LED_RED   19 //12
+#define LED_DATA_PIN 32
+#define NUM_LEDS 1
 
 #define SerialAT  Serial1
 #define SerialUSB Serial
@@ -50,24 +50,45 @@ TinyGsm       g_modem(SerialAT);
 TinyGsmClient g_client(g_modem);
 PubSubClient  g_mqtt(g_client);
 mma8451_t     g_sensor;
+CRGB leds[NUM_LEDS];
 
 hw_timer_t *g_timer    = NULL;
 hw_timer_t *g_wdt      = NULL;
 
 static const char *broker   = "mastap.net";
-static const char *topic    = "ngd/demo/HSRW_Balcony/data";
-static const char *moduleID = "Balcony001" ;
-static const char *subscribeTopic = "ngd/demo/HSRW_Balcony/command";
+static const char *topic    = "ngd/demo/lv2_001/data";
+static const char *subscribeTopic = "ngd/demo/lv2_001/command";
+
+static const char *moduleID = "LV020_0000001";
+static const char *moduletype = "LumaVibe 2.0";
+static const char *format = "Int16";
+static const uint8_t msgtype = 2;
+static const uint8_t freq = 200;
+static const uint16_t numberOfMeas = BUFFER_SIZE;
 
 static bool g_accelerometerInterruptFlag = false;
 static bool g_timerFlag = false;
 
 static uint16_t g_threshold = 500;
-static uint16_t g_duration  = 21;
+static uint16_t g_duration  = 10;
+
+typedef struct {
+  int16_t *x;
+  int16_t *y;
+  int16_t *z;
+  const char *moduleID;
+  const char *moduletype;
+  const char *format;
+  const uint8_t freg;
+  const uint16_t numberOfMeas;
+} data_t;
 
 void IRAM_ATTR accelerometerISR();
 
 void setup() {
+  startWatchDog();
+  Serial.begin(115200);
+  Serial.println(F("Hello World.."));
 #ifdef TGO_BOARD
   #define MODEM_RST            5
   #define MODEM_PWKEY          4
@@ -80,40 +101,41 @@ void setup() {
   digitalWrite(MODEM_PWKEY, LOW);
   digitalWrite(MODEM_RST, HIGH);
   digitalWrite(MODEM_POWER_ON, HIGH);
-#endif
-
-  pinMode(LED_GREEN, OUTPUT);
-  pinMode(LED_RED, OUTPUT);
-  digitalWrite(LED_GREEN, HIGH);
-  digitalWrite(LED_RED, HIGH);
-  
-  Serial.begin(115200);
-  Serial.println(F("Hello World.."));
 
   Wire.begin(I2C_SDA, I2C_SCL);
   bool   isOk = setPowerBoostKeepOn(1);
   Serial.println(String("IP5306 KeepOn ") + (isOk ? "OK" : "FAIL"));
-  
-  setupSensor();
-  setupModem();
-  g_mqtt.setServer(broker, 1883);
+#endif
+  FastLED.addLeds<NEOPIXEL, LED_DATA_PIN>(leds, NUM_LEDS);
+  leds[0] = CRGB::Red;
+  FastLED.show();
 
-  digitalWrite(LED_GREEN, LOW);
-  digitalWrite(LED_RED, LOW);
+  setupSensor(); feedWatchDog();
+  setupModem(); feedWatchDog();
+  g_mqtt.setServer(broker, 1883);
 
   Serial.println(F("Ininitalizing timer"));
   startTimer();
   Serial.println(F("Set up done!"));
 
-  pinMode(INT_PIN, INPUT_PULLDOWN);
+  leds[0] = CRGB::Green;
+  FastLED.show();
+
+  //pinMode(INT_PIN, INPUT_PULLDOWN);
   attachInterrupt(INT_PIN, accelerometerISR, RISING);
+  endWatchDog();
 }
 
 
 void loop() {
-  //updateSerial();
+  startWatchDog();
   if (g_accelerometerInterruptFlag || g_timerFlag) {
-    digitalWrite(LED_RED, HIGH);
+    leds[0] = CRGB::Blue;
+    FastLED.show();
+
+    uint16_t threshold_temp = g_threshold;
+    uint16_t duration_temp = g_duration;
+    
     if (g_accelerometerInterruptFlag) {
       Serial.println(F("\nacceleration interrupt"));
       g_accelerometerInterruptFlag = false;
@@ -130,20 +152,19 @@ void loop() {
     delay(100);
    
     Serial.print(F("capacity: ")); Serial.println((uint32_t)PACKER_CAPACITY);
-
-    int16_t *x = (int16_t *)malloc(BUFFER_SIZE * sizeof(int16_t));
-    int16_t *y = (int16_t *)malloc(BUFFER_SIZE * sizeof(int16_t));
-    int16_t *z = (int16_t *)malloc(BUFFER_SIZE * sizeof(int16_t));
-    uint16_t *t = (uint16_t *)malloc(BUFFER_SIZE * sizeof(uint16_t));
+    
+    data_t *data = (data_t *)malloc(sizeof(*data));
+    data->x      = (int16_t *)malloc(BUFFER_SIZE * sizeof(int16_t));
+    data->y      = (int16_t *)malloc(BUFFER_SIZE * sizeof(int16_t));
+    data->z      = (int16_t *)malloc(BUFFER_SIZE * sizeof(int16_t));
 
     for (uint16_t index = 0; index  < BUFFER_SIZE; index++) {
       uint32_t startTime = millis();
       while (millis() - startTime < MEASUREMENT_PER_MS);  
       MMA8451_readData(&g_sensor);
-      x[index] = (g_sensor.data.x);
-      y[index] = (g_sensor.data.y);
-      z[index] = (g_sensor.data.z);
-      t[index] = (index);
+      data->x[index] = (g_sensor.data.x);
+      data->y[index] = (g_sensor.data.y);
+      data->z[index] = (g_sensor.data.z);
 
       if (index % 100 == 0) {
         Serial.print(F("Index: ")); Serial.print(index);
@@ -152,83 +173,101 @@ void loop() {
     }
     Serial.print(F("Stop time: ")); Serial.println(millis());
 
-    startWatchDog();
+    feedWatchDog();
     setupMQTT(); 
     feedWatchDog();
 
     String location = g_modem.getGsmLocation();
     Serial.print(F("location: ")); Serial.println(location);
-    uint8_t index = location.lastIndexOf(',');
+    uint8_t index = location.lastIndexOf(',', 19);
     String timeStamp = location.substring(index+1);
+    timeStamp.replace('/', '-');
+    timeStamp.replace(',', 'T');
     Serial.print(F("timestamp: ")); Serial.println(timeStamp);
-
-    digitalWrite(LED_RED, LOW);
-    digitalWrite(LED_GREEN, HIGH);
 
     char *buffer = (char *)malloc(PACKER_CAPACITY);
 
     Serial.println(F("check 1"));
     mpack_writer_t writer;
     mpack_writer_init(&writer, buffer, PACKER_CAPACITY);
-    mpack_start_map(&writer, 9);
+    mpack_start_map(&writer, 10);
     mpack_write_cstr(&writer, "timestamp"); mpack_write_cstr(&writer, timeStamp.c_str());
     mpack_write_cstr(&writer, "moduleID");  mpack_write_cstr(&writer, moduleID);
+    mpack_write_cstr(&writer, "moduletype");  mpack_write_cstr(&writer, moduletype);
     mpack_write_cstr(&writer, "msgtype");   mpack_write_u8(&writer, 2);
-    mpack_write_cstr(&writer, "format");    mpack_write_cstr(&writer, "Int16");
+    mpack_write_cstr(&writer, "format");    mpack_write_cstr(&writer, format);
     mpack_write_cstr(&writer, "freq");      mpack_write_u8(&writer, 200);
-
+    mpack_write_cstr(&writer, "numberOfMeas"); mpack_write_u16(&writer, BUFFER_SIZE);
+    
     mpack_write_cstr(&writer, "x-accel");
     mpack_write_tag(&writer, mpack_tag_make_array(BUFFER_SIZE));
     Serial.println(F("check 2"));
     for (uint16_t i = 0; i < BUFFER_SIZE; i++) {
-        mpack_write_i16(&writer, x[i]);
+        mpack_write_i16(&writer, data->x[i]);
     }
     Serial.println(F("check 3"));
     mpack_write_cstr(&writer, "y-accel");
     mpack_write_tag(&writer, mpack_tag_make_array(BUFFER_SIZE));
     for (uint16_t i = 0; i < BUFFER_SIZE; i++) {
-        mpack_write_i16(&writer, y[i]);
+        mpack_write_i16(&writer, data->y[i]);
     }
     Serial.println(F("check 4"));
     mpack_write_cstr(&writer, "z-accel");
     mpack_write_tag(&writer, mpack_tag_make_array(BUFFER_SIZE));
     for (uint16_t i = 0; i < BUFFER_SIZE; i++) {
-        mpack_write_i16(&writer, z[i]);
+        mpack_write_i16(&writer, data->z[i]);
     }
     Serial.println(F("check 5"));
-    mpack_write_cstr(&writer, "tba");
-    mpack_write_tag(&writer, mpack_tag_make_array(BUFFER_SIZE));
-    for (uint16_t i = 0; i < BUFFER_SIZE; i++) {
-        mpack_write_i16(&writer, t[i]);
-    }
-    Serial.println(F("check 6"));
 
     size_t bytesSerialized = mpack_writer_buffer_used(&writer);
     mpack_finish_map(&writer);
     Serial.print(F("Bytes serialized: ")); Serial.println(bytesSerialized);
-    Serial.println(F("check 7"));
+    Serial.println(F("check 6"));
 
     feedWatchDog();
+
+    leds[0] = CRGB::Yellow;
+    FastLED.show();
 
     publishMQTT((uint8_t *)buffer, bytesSerialized, 512);
 
     free(buffer);
     buffer = NULL;
-    free(x); x = NULL; 
-    free(y); y = NULL; 
-    free(z); z = NULL; 
-    free(t); t = NULL;
+    free(data);
     feedWatchDog();
-    endWatchDog();
+
+    //g_mqtt.setCallback(mqttCallback);
+    g_mqtt.subscribe(subscribeTopic);
+    Serial.println(F("topic subscribed"));
+    Serial.println(F("checking for command.."));
+    delay(2000);
+    g_mqtt.loop();
+    g_mqtt.loop();
+    Serial.println(F("disconnecting mqtt"));
+    g_mqtt.disconnect();
 
     Serial.print(F("MQTT connected: ")); Serial.println(g_mqtt.connected() ? "YES" : "NO");
     Serial.print(F("FF_MT_SRC: ")); Serial.println(MMA8451_getMotionSource(&g_sensor), BIN);
     delay(100);
     Serial.print(F("INT_SRC: "));Serial.println(MMA8451_getInterruptSource(&g_sensor), BIN);
-    
 
-    digitalWrite(LED_GREEN, LOW);
-    blinkLED(LED_GREEN, 300, 5);
+    if ((g_threshold != threshold_temp) || (g_duration != duration_temp)) {
+      Serial.println(F("Reconfiguring interrupt"));
+      MMA8451_enableInterrupt(&g_sensor, g_threshold, g_duration, true, true);
+      Serial.println(F("Interrupt reconfigured"));
+    }
+    
+    endWatchDog();
+
+    leds[0] = CRGB::Green;
+    FastLED.show();
+    FastLED.delay(400); FastLED.clear();
+    leds[0] = CRGB::Green;
+    FastLED.show();
+    FastLED.delay(400); FastLED.clear();
+    leds[0] = CRGB::Green;
+    FastLED.show();
+    FastLED.delay(400); FastLED.clear();        
 
     //digitalRead(INT_PIN);
     digitalWrite(INT_PIN, 0);
@@ -249,7 +288,6 @@ void updateSerial()
     Serial.write(SerialAT.read());//Forward what Software Serial received to Serial Port
   }
 }
-
 
 
 void setupModem() {
@@ -348,9 +386,10 @@ void setupMQTT() {
         Serial.println(F("Retrying.."));
       }
     }
+    g_mqtt.setCallback(mqttCallback);
+    Serial.println();
+    Serial.println(F("mqtt connected"));
   }
-  Serial.println();
-  Serial.println(F("mqtt connected"));
 }
 
 void setupSensor() {
@@ -425,19 +464,10 @@ void publishMQTT(const uint8_t *buffer, uint32_t bytesTotal, uint16_t bytesPerWr
   }
   ret = g_mqtt.endPublish(); 
   Serial.print(F("ret")); Serial.println(ret ? " OK" : " Failed");
-  g_mqtt.disconnect();
   Serial.println(F("Done publishing"));
 }
 
-void blinkLED(uint8_t ledPin, uint8_t ms, uint8_t times) {
-  for (uint8_t i = 0; i < times; i++) {
-    digitalWrite(ledPin, HIGH);
-    delay(ms);
-    digitalWrite(ledPin, LOW);
-    delay(ms);
-  }
-}
-
+#ifdef TGO_BOARD
 
 #define IP5306_ADDR          0x75
 #define IP5306_REG_SYS_CTL0  0x00
@@ -452,4 +482,57 @@ bool setPowerBoostKeepOn(int en)
     Wire.write(0x35); // 0x37 is default reg value
   }
   return Wire.endTransmission() == 0;
+}
+
+#endif
+
+
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  Serial.println(F("message arrived"));
+  Serial.println(topic);
+  Serial.println();
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+  mpack_reader_t reader;
+  mpack_reader_init_data(&reader, (char *)payload, length);
+  uint8_t count = mpack_expect_map_range(&reader, 3, 8);
+  Serial.print("count"); Serial.println(count);
+
+  mpack_expect_cstr_match(&reader, "sender");
+  char sender[10];
+  mpack_expect_cstr(&reader, sender, 10);
+ 
+  mpack_expect_cstr_match(&reader, "threshold");
+  uint16_t threshold;
+  threshold = mpack_expect_u16(&reader);
+
+  mpack_expect_cstr_match(&reader, "duration");
+  uint16_t duration;
+  duration = mpack_expect_u16(&reader);
+
+  /*
+  mpack_expect_cstr_match(&reader, "deadtime");
+  uint16_t deadtime;
+  deadtime = mpack_expect_u16(&reader);
+
+  mpack_expect_cstr_match(&reader, "period");
+  uint16_t period;
+  period = mpack_expect_u16(&reader);
+  */
+
+  mpack_expect_cstr_match(&reader, "_msgid");
+  char _msgid[20];
+  mpack_expect_cstr(&reader, _msgid, 20);
+
+  mpack_done_map(&reader);
+
+  g_threshold = threshold;
+  g_duration = duration;
+
+  Serial.print("sender: "); Serial.println(sender);
+  Serial.print("_msgid: "); Serial.println(_msgid);
+  Serial.print("threshold: "); Serial.println(threshold);
+  Serial.print("duration: "); Serial.println(duration);
 }
