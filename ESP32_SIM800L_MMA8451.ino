@@ -11,7 +11,7 @@ Note: Frequency only gets set when MMA8451_enableInterrupt() is called ????
 
 -- detachInterrupt when doing mqtt transmission and other critical tasks!!!
 
---
+-- Replace Delays ....
 */
 
 // https://github.com/Xinyuan-LilyGO/TTGO-T-Call
@@ -106,7 +106,7 @@ void IRAM_ATTR accelerometerISR();
 void setup() {
   startWatchDog();
   Serial.begin(115200);
-  Serial.println(F("Hello World.."));
+  Serial.println(F("LumaVibe V2 Starting ..."));
 /*#ifdef TGO_BOARD
   #define MODEM_RST            5
   #define MODEM_PWKEY          4
@@ -149,17 +149,37 @@ void setup() {
 
 
 void loop() {
-  startWatchDog();
-  /// double check the WDT is runnning!!!
+  
+  /// double check the WDT is runnning??? Is there a way?
 
   if (g_accelerometerInterruptFlag || g_timerFlag) {
+    startWatchDog();
+  
+   // detachInterrupt and endTimer as fast as possible. Makes more sense right here...
+    //detachInterrupt(INT_PIN); 
+    //endTimer();
+    
+    
+    
+//    // Reading the FF_MT_SRC Register Clears the Interrupt on the MMA8451
+//    Serial.print(F("FF_MT_SRC: ")); Serial.println(MMA8451_getMotionSource(&g_sensor), BIN);
+//    //delay(100);
+//    Serial.print(F("INT_SRC: "));Serial.println(MMA8451_getInterruptSource(&g_sensor), BIN);
 
-    // Disable MMA8451 interrupt or clear?
-    //
-    MMA8451_disableInterrupt(mma8451_t *const sensor);
-    // detachInterrupt and endTimer as fast as possible. Makes more sense right here...
-    detachInterrupt(INT_PIN);
-    endTimer();
+    /*if (g_accelerometerInterruptFlag) {
+      Serial.println(F("\nacceleration interrupt"));
+      g_accelerometerInterruptFlag = false;
+    }
+    if (g_timerFlag) {
+      Serial.println(F("\ntimer interrupt"));
+      g_timerFlag = false;
+    }*/
+
+    leds[0] = CRGB::Blue;
+    FastLED.show();
+
+    uint16_t threshold_temp = g_threshold;
+    uint16_t duration_temp = g_duration;
 
     if (g_accelerometerInterruptFlag) {
       Serial.println(F("\nacceleration interrupt"));
@@ -170,23 +190,8 @@ void loop() {
       g_timerFlag = false;
     }
 
-    leds[0] = CRGB::Blue;
-    FastLED.show();
-
-    uint16_t threshold_temp = g_threshold;
-    uint16_t duration_temp = g_duration;
-
-    /*if (g_accelerometerInterruptFlag) {
-      Serial.println(F("\nacceleration interrupt"));
-      g_accelerometerInterruptFlag = false;
-    }
-    if (g_timerFlag) {
-      Serial.println(F("\ntimer interrupt"));
-      g_timerFlag = false;
-    }
-
-    detachInterrupt(INT_PIN);
-    endTimer();*/
+    //detachInterrupt(INT_PIN);
+    endTimer();
 
     Serial.println();
     delay(100);
@@ -272,7 +277,7 @@ void loop() {
     publishMQTT((uint8_t *)buffer, bytesSerialized, 512);
 
     free(buffer);
-    buffer = NULL;
+    //buffer = NULL;
     free(data);
     feedWatchDog();
 
@@ -292,8 +297,6 @@ void loop() {
     Serial.print(F("FF_MT_SRC: ")); Serial.println(MMA8451_getMotionSource(&g_sensor), BIN);
     delay(100);
     Serial.print(F("INT_SRC: "));Serial.println(MMA8451_getInterruptSource(&g_sensor), BIN);
-
-
 
     Serial.println(F("Reconfiguring interrupt"));
     MMA8451_enableInterrupt(&g_sensor, g_threshold, g_duration, true, true);
@@ -441,12 +444,14 @@ void setupMQTT() {
 }
 
 void setupSensor() {
+  Serial.println(F("Initializing MMA8451"));
   g_sensor.i2cAddress = MMA8451_DEFAULT_ADDRESS;
   bool ret = MMA8451_begin(&g_sensor);
   if (!ret) {
     Serial.println(F("Init failed"));
     while(1);
   }
+  //MMA8451_getMotionSource(&g_sensor) // Clear previous interrupt in case there was one
   MMA8451_enableInterrupt(&g_sensor, g_threshold, g_duration, true, true);
 }
 
