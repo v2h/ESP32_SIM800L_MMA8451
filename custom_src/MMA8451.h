@@ -97,7 +97,7 @@ void MMA8451_enableInterrupt(mma8451_t *const sensor, uint16_t thresshold_mg, ui
 void MMA8451_disableInterrupt(mma8451_t *const sensor);
 void MMA8451_clearInterrupt(mma8451_t *const sensor);
 
-void MMA8451_clearInterrupt(mma8451_t *const sensor);
+//void MMA8451_clearInterrupt(mma8451_t *const sensor);
 
 uint8_t MMA8451_getInterruptSource(mma8451_t *const sensor);
 uint8_t MMA8451_getMotionSource(mma8451_t *const sensor);

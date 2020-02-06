@@ -1,3 +1,19 @@
+/*
+//// MMA8451 ////
+Sampling Frequency: 800Hz
+See: MMA8451.cpp
+Function: MMA8451_enableInterrupt()
+Line: 94 , MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG1, 0x01 | 0x04); // active, 800Hz, low noise
+Note: Frequency only gets set when MMA8451_enableInterrupt() is called ????
+
+//// OPEN QUESTIONS ////
+-- Can the measurement interval frequency be changed to 0 through Node Red's command ? What happens then?
+
+-- detachInterrupt when doing mqtt transmission and other critical tasks!!!
+
+--
+*/
+
 // https://github.com/Xinyuan-LilyGO/TTGO-T-Call
 // https://pubsubclient.knolleary.net/api.html for pubsubclient
 
@@ -29,11 +45,13 @@ const char simPIN[]   = "";//"7526"; // SIM card PIN code, if any
 #define MODEM_TX 27
 #define MODEM_RX 26
 
-// For the voltage regulator chip thingy
-#define I2C_SDA 21
-#define I2C_SCL 22
 
-#define INT_PIN   15
+// ???????? Needed for the sim800 version??
+/*// For the voltage regulator chip thingy
+#define I2C_SDA 21
+#define I2C_SCL 22*/
+
+#define INT_PIN   15 // Interrupt of the MMA8451
 #define LED_DATA_PIN 32
 #define NUM_LEDS 1
 
@@ -63,7 +81,7 @@ static const char *moduleID = "LV020_0000001";
 static const char *moduletype = "LumaVibe 2.0";
 static const char *format = "Int16";
 static const uint8_t msgtype = 2;
-static const uint8_t freq = 200;
+static const uint8_t freq = 200; // interval between individual measurements. 200Hz. 5ms ???
 static const uint16_t numberOfMeas = BUFFER_SIZE;
 
 static bool g_accelerometerInterruptFlag = false;
@@ -79,7 +97,7 @@ typedef struct {
   const char *moduleID;
   const char *moduletype;
   const char *format;
-  const uint8_t freg;
+  const uint8_t freg; /// freg? should be freq with a "q". "freg" never used?
   const uint16_t numberOfMeas;
 } data_t;
 
@@ -89,7 +107,7 @@ void setup() {
   startWatchDog();
   Serial.begin(115200);
   Serial.println(F("Hello World.."));
-#ifdef TGO_BOARD
+/*#ifdef TGO_BOARD
   #define MODEM_RST            5
   #define MODEM_PWKEY          4
   #define MODEM_POWER_ON       23
@@ -105,13 +123,16 @@ void setup() {
   Wire.begin(I2C_SDA, I2C_SCL);
   bool   isOk = setPowerBoostKeepOn(1);
   Serial.println(String("IP5306 KeepOn ") + (isOk ? "OK" : "FAIL"));
-#endif
+#endif*/
   FastLED.addLeds<NEOPIXEL, LED_DATA_PIN>(leds, NUM_LEDS);
   leds[0] = CRGB::Red;
   FastLED.show();
 
-  setupSensor(); feedWatchDog();
-  setupModem(); feedWatchDog();
+  setupSensor();
+  feedWatchDog();
+  setupModem();
+  feedWatchDog();
+
   g_mqtt.setServer(broker, 1883);
 
   Serial.println(F("Ininitalizing timer"));
@@ -129,30 +150,49 @@ void setup() {
 
 void loop() {
   startWatchDog();
+  /// double check the WDT is runnning!!!
+
   if (g_accelerometerInterruptFlag || g_timerFlag) {
+
+    // Disable MMA8451 interrupt or clear?
+    //
+    MMA8451_disableInterrupt(mma8451_t *const sensor);
+    // detachInterrupt and endTimer as fast as possible. Makes more sense right here...
+    detachInterrupt(INT_PIN);
+    endTimer();
+
+    if (g_accelerometerInterruptFlag) {
+      Serial.println(F("\nacceleration interrupt"));
+      g_accelerometerInterruptFlag = false;
+    }
+    if (g_timerFlag) {
+      Serial.println(F("\ntimer interrupt"));
+      g_timerFlag = false;
+    }
+
     leds[0] = CRGB::Blue;
     FastLED.show();
 
     uint16_t threshold_temp = g_threshold;
     uint16_t duration_temp = g_duration;
-    
-    if (g_accelerometerInterruptFlag) {
+
+    /*if (g_accelerometerInterruptFlag) {
       Serial.println(F("\nacceleration interrupt"));
       g_accelerometerInterruptFlag = false;
-    } 
+    }
     if (g_timerFlag) {
       Serial.println(F("\ntimer interrupt"));
       g_timerFlag = false;
     }
-  
+
     detachInterrupt(INT_PIN);
-    endTimer();
-    
+    endTimer();*/
+
     Serial.println();
     delay(100);
-   
+
     Serial.print(F("capacity: ")); Serial.println((uint32_t)PACKER_CAPACITY);
-    
+
     data_t *data = (data_t *)malloc(sizeof(*data));
     data->x      = (int16_t *)malloc(BUFFER_SIZE * sizeof(int16_t));
     data->y      = (int16_t *)malloc(BUFFER_SIZE * sizeof(int16_t));
@@ -160,7 +200,7 @@ void loop() {
 
     for (uint16_t index = 0; index  < BUFFER_SIZE; index++) {
       uint32_t startTime = millis();
-      while (millis() - startTime < MEASUREMENT_PER_MS);  
+      while (millis() - startTime < MEASUREMENT_PER_MS);
       MMA8451_readData(&g_sensor);
       data->x[index] = (g_sensor.data.x);
       data->y[index] = (g_sensor.data.y);
@@ -174,7 +214,7 @@ void loop() {
     Serial.print(F("Stop time: ")); Serial.println(millis());
 
     feedWatchDog();
-    setupMQTT(); 
+    setupMQTT();
     feedWatchDog();
 
     String location = g_modem.getGsmLocation();
@@ -196,9 +236,9 @@ void loop() {
     mpack_write_cstr(&writer, "moduletype");  mpack_write_cstr(&writer, moduletype);
     mpack_write_cstr(&writer, "msgtype");   mpack_write_u8(&writer, 2);
     mpack_write_cstr(&writer, "format");    mpack_write_cstr(&writer, format);
-    mpack_write_cstr(&writer, "freq");      mpack_write_u8(&writer, 200);
+    mpack_write_cstr(&writer, "freq");      mpack_write_u8(&writer, 200); // Measurement frequency not sampling! 200hz. Every 5ms????
     mpack_write_cstr(&writer, "numberOfMeas"); mpack_write_u16(&writer, BUFFER_SIZE);
-    
+
     mpack_write_cstr(&writer, "x-accel");
     mpack_write_tag(&writer, mpack_tag_make_array(BUFFER_SIZE));
     Serial.println(F("check 2"));
@@ -241,8 +281,10 @@ void loop() {
     Serial.println(F("topic subscribed"));
     Serial.println(F("checking for command.."));
     delay(2000);
+
     g_mqtt.loop();
-    g_mqtt.loop();
+    //g_mqtt.loop();   // Why execute twice??????
+
     Serial.println(F("disconnecting mqtt"));
     g_mqtt.disconnect();
 
@@ -251,12 +293,18 @@ void loop() {
     delay(100);
     Serial.print(F("INT_SRC: "));Serial.println(MMA8451_getInterruptSource(&g_sensor), BIN);
 
-    if ((g_threshold != threshold_temp) || (g_duration != duration_temp)) {
+
+
+    Serial.println(F("Reconfiguring interrupt"));
+    MMA8451_enableInterrupt(&g_sensor, g_threshold, g_duration, true, true);
+    Serial.println(F("Interrupt reconfigured"));
+
+    /*if ((g_threshold != threshold_temp) || (g_duration != duration_temp)) {
       Serial.println(F("Reconfiguring interrupt"));
       MMA8451_enableInterrupt(&g_sensor, g_threshold, g_duration, true, true);
       Serial.println(F("Interrupt reconfigured"));
-    }
-    
+    }*/
+
     endWatchDog();
 
     leds[0] = CRGB::Green;
@@ -267,10 +315,10 @@ void loop() {
     FastLED.delay(400); FastLED.clear();
     leds[0] = CRGB::Green;
     FastLED.show();
-    FastLED.delay(400); FastLED.clear();        
+    FastLED.delay(400); FastLED.clear();
 
     //digitalRead(INT_PIN);
-    digitalWrite(INT_PIN, 0);
+    //digitalWrite(INT_PIN, 0); // WHY WRITE TO THE PIN??????
     attachInterrupt(INT_PIN, accelerometerISR, RISING);
     startTimer();
   }
@@ -279,11 +327,11 @@ void loop() {
 void updateSerial()
 {
 //  delay(500);
-  while (Serial.available()) 
+  while (Serial.available())
   {
     SerialAT.write(Serial.read());//Forward what Serial received to Software Serial Port
   }
-  while(SerialAT.available()) 
+  while(SerialAT.available())
   {
     Serial.write(SerialAT.read());//Forward what Software Serial received to Serial Port
   }
@@ -422,6 +470,11 @@ void startTimer() {
   g_timer = timerBegin(0, 80, true); // 80 is correlated to fclk
   timerAttachInterrupt(g_timer, timerISR, true);
   timerAlarmWrite(g_timer, TIMER_TIMEOUT_S, true);
+
+  // if the following yield() is removed, the timer will not be enabled the second time
+  // REF: https://github.com/espressif/arduino-esp32/issues/1313
+  yield();
+
   timerAlarmEnable(g_timer);
 }
 
@@ -429,6 +482,11 @@ void startWatchDog() {
   g_wdt = timerBegin(1, 80, true);
   timerAttachInterrupt(g_wdt, &resetModule, true);
   timerAlarmWrite(g_wdt, WDT_TIMEOUT_S, false);
+
+  // if the following yield() is removed, the timer will not be enabled the second time
+  // REF: https://github.com/espressif/arduino-esp32/issues/1313
+  yield();
+
   timerAlarmEnable(g_wdt);
 }
 
@@ -443,13 +501,13 @@ void endWatchDog() {
 
 void endTimer() {
   timerEnd(g_timer);
-  g_timer = NULL; 
+  g_timer = NULL;
 }
 
 void publishMQTT(const uint8_t *buffer, uint32_t bytesTotal, uint16_t bytesPerWrite) {
   Serial.println(F("Publishing.."));
   bool ret;
-  ret = g_mqtt.beginPublish(topic, bytesTotal, false); 
+  ret = g_mqtt.beginPublish(topic, bytesTotal, false);
   Serial.print(F("ret")); Serial.println(ret ? " OK" : " Failed");
   uint8_t *pointerToBuffer = (uint8_t *)buffer;
   Serial.print(F("0. bytes remaining: ")); Serial.println(bytesTotal);
@@ -462,12 +520,12 @@ void publishMQTT(const uint8_t *buffer, uint32_t bytesTotal, uint16_t bytesPerWr
     g_mqtt.loop();
     yield();
   }
-  ret = g_mqtt.endPublish(); 
+  ret = g_mqtt.endPublish();
   Serial.print(F("ret")); Serial.println(ret ? " OK" : " Failed");
   Serial.println(F("Done publishing"));
 }
 
-#ifdef TGO_BOARD
+/*#ifdef TGO_BOARD
 
 #define IP5306_ADDR          0x75
 #define IP5306_REG_SYS_CTL0  0x00
@@ -484,7 +542,7 @@ bool setPowerBoostKeepOn(int en)
   return Wire.endTransmission() == 0;
 }
 
-#endif
+#endif*/
 
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
@@ -503,7 +561,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   mpack_expect_cstr_match(&reader, "sender");
   char sender[10];
   mpack_expect_cstr(&reader, sender, 10);
- 
+
   mpack_expect_cstr_match(&reader, "threshold");
   uint16_t threshold;
   threshold = mpack_expect_u16(&reader);
