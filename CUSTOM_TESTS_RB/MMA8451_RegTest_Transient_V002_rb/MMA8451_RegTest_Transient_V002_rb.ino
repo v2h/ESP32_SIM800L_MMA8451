@@ -62,7 +62,7 @@ void setup() {
 
 // Block here for testing ...
 //  while(1);
-  
+
   pinMode(INT_PIN, INPUT_PULLUP);
   attachInterrupt(INT_PIN, accelerometerISR, FALLING);
 }
@@ -73,15 +73,15 @@ void loop() {
 
 
   mo_src = accel.getTransientSource();
-  while (!g_accelInterruptFlag);  
-  
+  while (!g_accelInterruptFlag);
+
   g_accelInterruptFlag = false;
   mo_src = accel.getTransientSource();
   Serial.print("Motion Detected: ");
   Serial.println(mo_src,HEX);
   attachInterrupt(INT_PIN, accelerometerISR, FALLING);
 
-  
+
 /*
   accel.update();
   Serial.print(accel._xi); Serial.print("\t");
@@ -97,10 +97,10 @@ void loop() {
 
 /*
   accel.update(); // update x,y,z measurements in class
-  
+
   uint8_t res = accel._read_register(accel.INT_SOURCE);
   accel._PrintHex8(&res, 1);  Serial.print("\t");
-  
+
   res = accel._read_register(accel.TRANSIENT_SRC);
   accel._PrintHex8(&res, 1);  Serial.print("\t");
 

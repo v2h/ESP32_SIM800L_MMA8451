@@ -1,26 +1,14 @@
 /*
-  //// MMA8451 ////
-  Sampling Frequency: 800Hz
-  See: MMA8451.cpp
-  Function: MMA8451_enableInterrupt()
-  Line: 94 , MMA8451_writeReg8(sensor, MMA8451_REG_CTRL_REG1, 0x01 | 0x04); // active, 800Hz, low noise
-  Note: Frequency only gets set when MMA8451_enableInterrupt() is called ????
-
-  //// OPEN QUESTIONS ////
-  -- Can the measurement interval frequency be changed to 0 through Node Red's command ? What happens then?
-
-  -- detachInterrupt when doing mqtt transmission and other critical tasks!!!
-
-  -- Replace Delays ....
+  LumaVibe V2.00
 */
 
 // https://github.com/Xinyuan-LilyGO/TTGO-T-Call
 // https://pubsubclient.knolleary.net/api.html for pubsubclient
 
 #include <Arduino.h>
-/*#include <Wire.h>
-  #include "custom_src/MMA8451.h"*/
-#include "custom_src/mpack.h"*/
+//#include <Wire.h>
+//#include "custom_src/MMA8451.h"
+#include "custom_src/mpack.h"
 #include <FastLED.h>
 #include "custom_src/my_MMA845XQ_V002.h"
 
@@ -41,16 +29,8 @@ const char simPIN[]   = "";//"7526"; // SIM card PIN code, if any
 // MQTT library
 #include <PubSubClient.h>
 
-
-// TTGO T-Call pin definitions
 #define MODEM_TX 27
 #define MODEM_RX 26
-
-
-// ???????? Needed for the sim800 version??
-/*// For the voltage regulator chip thingy
-  #define I2C_SDA 21
-  #define I2C_SCL 22*/
 
 #define INT_PIN   15 // Interrupt of the MMA8451
 #define LED_DATA_PIN 32
@@ -82,14 +62,15 @@ static const char *moduleID = "LV020_0000001";
 static const char *moduletype = "LumaVibe 2.0";
 static const char *format = "Int16";
 static const uint8_t msgtype = 2;
-static const uint8_t freq = 200; // interval between individual measurements. 200Hz. 5ms ???
+static const uint8_t freq = 200;
 static const uint16_t numberOfMeas = BUFFER_SIZE;
 
-static bool g_accelerometerInterruptFlag = false;
+volatile bool g_accelerometerInterruptFlag = false;
 static bool g_timerFlag = false;
 
 static uint16_t g_threshold = 500;
 static uint16_t g_duration  = 10;
+
 
 typedef struct {
   int16_t *x;
@@ -109,23 +90,7 @@ void setup() {
   Wire.begin();
   Serial.begin(115200);
   Serial.println(F("LumaVibe V2 Starting ..."));
-  /*#ifdef TGO_BOARD
-    #define MODEM_RST            5
-    #define MODEM_PWKEY          4
-    #define MODEM_POWER_ON       23
-    // Set-up modem reset, enable, power pins
-    pinMode(MODEM_PWKEY, OUTPUT);
-    pinMode(MODEM_RST, OUTPUT);
-    pinMode(MODEM_POWER_ON, OUTPUT);
 
-    digitalWrite(MODEM_PWKEY, LOW);
-    digitalWrite(MODEM_RST, HIGH);
-    digitalWrite(MODEM_POWER_ON, HIGH);
-
-    Wire.begin(I2C_SDA, I2C_SCL);
-    bool   isOk = setPowerBoostKeepOn(1);
-    Serial.println(String("IP5306 KeepOn ") + (isOk ? "OK" : "FAIL"));
-    #endif*/
   FastLED.addLeds<NEOPIXEL, LED_DATA_PIN>(leds, NUM_LEDS);
   leds[0] = CRGB::Red;
   FastLED.show();
@@ -144,8 +109,9 @@ void setup() {
   leds[0] = CRGB::Green;
   FastLED.show();
 
-  //pinMode(INT_PIN, INPUT_PULLDOWN);
-  attachInterrupt(INT_PIN, accelerometerISR, RISING);
+  pinMode(INT_PIN, INPUT_PULLUP);
+  attachInterrupt(INT_PIN, accelerometerISR, FALLING);
+  uint8_t tr_src = accel.getTransientSource(); // Read to clear EA flag in case we recieved an interrupt in between setupSensor() and attachInterrupt
   endWatchDog();
 }
 
@@ -153,51 +119,30 @@ void setup() {
 void loop() {
 
   /// double check the WDT is runnning??? Is there a way?
+  static uint8_t tr_src;
 
   if (g_accelerometerInterruptFlag || g_timerFlag) {
+
+    
+
     startWatchDog();
-
-    // detachInterrupt and endTimer as fast as possible. Makes more sense right here...
-    //detachInterrupt(INT_PIN);
-    //endTimer();
-
-
-
-    //    // Reading the FF_MT_SRC Register Clears the Interrupt on the MMA8451
-    //    Serial.print(F("FF_MT_SRC: ")); Serial.println(MMA8451_getMotionSource(&g_sensor), BIN);
-    //    //delay(100);
-    //    Serial.print(F("INT_SRC: "));Serial.println(MMA8451_getInterruptSource(&g_sensor), BIN);
-
-    /*if (g_accelerometerInterruptFlag) {
-      Serial.println(F("\nacceleration interrupt"));
-      g_accelerometerInterruptFlag = false;
-      }
-      if (g_timerFlag) {
-      Serial.println(F("\ntimer interrupt"));
-      g_timerFlag = false;
-      }*/
 
     leds[0] = CRGB::Blue;
     FastLED.show();
 
-
-    uint16_t threshold_temp = g_threshold;
-    uint16_t duration_temp = g_duration;
-
     if (g_accelerometerInterruptFlag) {
-      uint8_t mo_src = accel.getMotionSource(); // Read to clear EA flag
-      uint8_t tr_src = accel.getTransientSource(); // Read to clear EA flag
+      //uint8_t mo_src = accel.getMotionSource(); // Read to clear EA flag
       uint8_t res = accel._read_register(accel.INT_SOURCE);
+      tr_src = accel.getTransientSource(); // Read to clear EA flag
       accel._PrintHex8(&res, 1);  Serial.print("\t");
       Serial.println(F("\nAcceleration interrupt"));
-      g_accelerometerInterruptFlag = false;
+      //g_accelerometerInterruptFlag = false;
     }
     if (g_timerFlag) {
       Serial.println(F("\nTimer interrupt"));
       g_timerFlag = false;
     }
 
-    //detachInterrupt(INT_PIN);
     endTimer();
 
     Serial.println();
@@ -299,25 +244,11 @@ void loop() {
     delay(2000);
 
     g_mqtt.loop();
-    //g_mqtt.loop();   // Why execute twice??????
 
     Serial.println(F("disconnecting mqtt"));
     g_mqtt.disconnect();
 
     Serial.print(F("MQTT connected: ")); Serial.println(g_mqtt.connected() ? "YES" : "NO");
-    //Serial.print(F("FF_MT_SRC: ")); Serial.println(MMA8451_getMotionSource(&g_sensor), BIN);
-    //delay(100);
-    //Serial.print(F("INT_SRC: ")); Serial.println(MMA8451_getInterruptSource(&g_sensor), BIN);
-
-    //Serial.println(F("Reconfiguring interrupt"));
-    //MA8451_enableInterrupt(&g_sensor, g_threshold, g_duration, true, true);
-    //Serial.println(F("Interrupt reconfigured"));
-
-    /*if ((g_threshold != threshold_temp) || (g_duration != duration_temp)) {
-      Serial.println(F("Reconfiguring interrupt"));
-      MMA8451_enableInterrupt(&g_sensor, g_threshold, g_duration, true, true);
-      Serial.println(F("Interrupt reconfigured"));
-      }*/
 
     endWatchDog();
 
@@ -331,9 +262,12 @@ void loop() {
     FastLED.show();
     FastLED.delay(400); FastLED.clear();
 
-    //digitalRead(INT_PIN);
-    //digitalWrite(INT_PIN, 0); // WHY WRITE TO THE PIN??????
-    attachInterrupt(INT_PIN, accelerometerISR, RISING);
+    if (g_accelerometerInterruptFlag) {
+      Serial.println(F("Reattaching interrupt"));
+      g_accelerometerInterruptFlag = false;
+      tr_src = accel.getTransientSource(); // Read to clear EA flag
+      attachInterrupt(INT_PIN, accelerometerISR, FALLING);
+    }
     startTimer();
   }
 }
@@ -456,23 +390,15 @@ void setupMQTT() {
 
 void setupSensor() {
   Serial.println(F("Initializing MMA8451"));
-  //  g_sensor.i2cAddress = MMA8451_DEFAULT_ADDRESS;
-  //  bool ret = MMA8451_begin(&g_sensor);
-  //  if (!ret) {
-  //    Serial.println(F("Init failed"));
-  //    while(1);
-  //  }
-  //  //MMA8451_getMotionSource(&g_sensor) // Clear previous interrupt in case there was one
-  //  MMA8451_enableInterrupt(&g_sensor, g_threshold, g_duration, true, true);
 
   accel.SWreset(); // RESET THE REGS TO FACTORY DEFAULT FIRST!
   accel.setCommonParameters(accel.RANGE_2G, accel.RES_MAX, accel.LN_OFF, accel.DR_100, accel.OS_NORMAL, accel.HPF_OFF);
-
   // USE TRANSIENT DETECTION!
   accel.setTransientDetection();
   accel.setTransientThresholdG(0.07, false);
   accel.setTransientDebounceCounter(2);
   accel.setHPFilterCutOff(3);
+
   //// Using INT_PIN 2 = INT1 - DO NOT USE WITH Vibe V2.00 !!!
   //accel.setInterrupt(accel.INT_EN_TRANS, accel.INT1, true); // Which event should raise an interrupt, and to which MMA8451Q pin is it routed (pins INT1 and INT2)
   // Using INT_PIN 15 = INT2
@@ -556,26 +482,6 @@ void publishMQTT(const uint8_t *buffer, uint32_t bytesTotal, uint16_t bytesPerWr
   Serial.print(F("ret")); Serial.println(ret ? " OK" : " Failed");
   Serial.println(F("Done publishing"));
 }
-
-/*#ifdef TGO_BOARD
-
-  #define IP5306_ADDR          0x75
-  #define IP5306_REG_SYS_CTL0  0x00
-
-  bool setPowerBoostKeepOn(int en)
-  {
-  Wire.beginTransmission(IP5306_ADDR);
-  Wire.write(IP5306_REG_SYS_CTL0);
-  if (en) {
-    Wire.write(0x37); // Set bit1: 1 enable 0 disable boost keep on
-  } else {
-    Wire.write(0x35); // 0x37 is default reg value
-  }
-  return Wire.endTransmission() == 0;
-  }
-
-  #endif*/
-
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
   Serial.println(F("message arrived"));
