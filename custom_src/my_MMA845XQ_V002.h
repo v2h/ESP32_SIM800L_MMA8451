@@ -332,6 +332,7 @@ class MMA8451Q
     bool setTransientDetection();
     uint8_t getTransientSource();
     bool setTransientThresholdG(float g, bool dbcntm = false);
+	bool setMotionThresholdN(uint8_t g, bool dbcntm = false);
     bool setTransientDebounceCounter(uint8_t n = 10);
 
     bool setHPFilterCutOff(uint8_t n);

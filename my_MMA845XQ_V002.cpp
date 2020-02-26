@@ -203,6 +203,23 @@ bool MMA8451Q::setMotionThresholdG(float g, bool dbcntm)
   _active();
 }
 
+bool MMA8451Q::setMotionThresholdN(uint8_t g, bool dbcntm)
+{
+
+  _standby();
+    
+  uint8_t ths = 0;
+  
+  if (g > 127) ths = 127;
+  if (g < 0) ths = 0;
+    
+  ths &= THS_MASK;
+  
+  if (dbcntm) _write_register((ths | DBCNTM), FF_MT_THS);
+  else _write_register(ths, FF_MT_THS);
+
+  _active();
+}
 
 //////////////////////////////////////////////////////////
 /*

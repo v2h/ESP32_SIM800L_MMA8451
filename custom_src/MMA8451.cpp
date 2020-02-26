@@ -55,8 +55,12 @@ void MMA8451_readData(mma8451_t *const sensor) {
   Wire.endTransmission(false); // MMA8451 + friends uses repeated start!!
 
   Wire.requestFrom(sensor->i2cAddress, (uint8_t)6);
+  
   sensor->data.x = Wire.read(); 
-  sensor->data.x <<= 8; sensor->data.x |= Wire.read(); sensor->data.x >>= 2;
+  sensor->data.x <<= 8; 
+  sensor->data.x |= Wire.read(); 
+  sensor->data.x >>= 2;
+  
   sensor->data.y = Wire.read(); 
   sensor->data.y <<= 8; sensor->data.y |= Wire.read(); sensor->data.y >>= 2;
   sensor->data.z = Wire.read(); 

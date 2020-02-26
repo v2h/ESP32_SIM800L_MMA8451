@@ -392,7 +392,7 @@ void setupSensor() {
   Serial.println(F("Initializing MMA8451"));
 
   accel.SWreset(); // RESET THE REGS TO FACTORY DEFAULT FIRST!
-  accel.setCommonParameters(accel.RANGE_2G, accel.RES_MAX, accel.LN_OFF, accel.DR_100, accel.OS_NORMAL, accel.HPF_OFF);
+  accel.setCommonParameters(accel.RANGE_4G, accel.RES_MAX, accel.LN_OFF, accel.DR_100, accel.OS_NORMAL, accel.HPF_OFF);
   // USE TRANSIENT DETECTION!
   accel.setTransientDetection();
   accel.setTransientThresholdG(0.07, false);
