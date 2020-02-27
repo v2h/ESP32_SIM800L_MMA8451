@@ -13,7 +13,7 @@
  *
  */
 
-#include "custom_src/my_MMA845XQ_V002.h"
+#include "MMA845XQ_Vibe.h"
 
 MMA8451Q::MMA8451Q(uint8_t addr)
 {
@@ -23,19 +23,19 @@ MMA8451Q::MMA8451Q(uint8_t addr)
 
 
 const char * const MMA8451Q::regNames[] = {
-/*  0 0x00 */  "STATUS", "OUT_X_MSB", "OUT_X_LSB", "OUT_Y_MSB", "OUT_Y_LSB", "OUT_Z_MSB", "OUT_Z_LSB", "Reserved", 
+/*  0 0x00 */  "STATUS", "OUT_X_MSB", "OUT_X_LSB", "OUT_Y_MSB", "OUT_Y_LSB", "OUT_Z_MSB", "OUT_Z_LSB", "Reserved",
 /*  8 0x08 */  "Reserved", "F_SETUP", "TRIG_CFG", "SYSMOD", "INT_SOURCE", "WHO_AM_I", "XYZ_DATA_CFG", "HP_FILTER_CUTOFF",
-/* 16 0x10 */  "PL_STATUS", "PL_CFG", "PL_COUNT", "PL_BF_ZCOMP", "P_L_THS_REG", "FF_MT_CFG", "FF_MT_SRC", "FF_MT_THS", 
+/* 16 0x10 */  "PL_STATUS", "PL_CFG", "PL_COUNT", "PL_BF_ZCOMP", "P_L_THS_REG", "FF_MT_CFG", "FF_MT_SRC", "FF_MT_THS",
 /* 24 0x18 */  "FF_MT_COUNT", "Reserved", "Reserved", "Reserved", "Reserved", "TRANSIENT_CFG", "TRANSIENT_SCR", "TRANSIENT_THS",
 /* 32 0x20 */  "TRANSIENT_COUNT", "PULSE_CFG", "PULSE_SRC", "PULSE_THSX", "PULSE_THSY", "PULSE_THSZ", "PULSE_TMLT", "PULSE_LTCY",
-/* 40 0x28 */  "PULSE_WIND", "ASLP_COUNT", "CTRL_REG1", "CTRL_REG2", "CTRL_REG3", "CTRL_REG4", "CTRL_REG5", "OFF_X", 
+/* 40 0x28 */  "PULSE_WIND", "ASLP_COUNT", "CTRL_REG1", "CTRL_REG2", "CTRL_REG3", "CTRL_REG4", "CTRL_REG5", "OFF_X",
 /* 48 0x29 */  "OFF_Y", "OFF_Z"
 };
 
 
 uint8_t MMA8451Q::SWreset()
 {
-  _write_register(RST, CTRL_REG2);  
+  _write_register(RST, CTRL_REG2);
   delay(10);
 }
 
@@ -44,60 +44,69 @@ uint8_t MMA8451Q::setCommonParameters(RANGE range, RESOLUTION resolution, LOW_NO
 {
   _highres = (resolution == RES_MAX); //Important! It is used in update(), i.e. data reading and printing
 
-  _scale = range; // Purpose unclear.
-
+  /*_scale = range; // Purpose unclear.
   _step_factor = (_highres ? 0.0039 : 0.0156); // Base value at 2g setting
-  
   if( range == RANGE_4G )
     _step_factor *= 2;
   else if (range == RANGE_8G )
-    _step_factor *= 4;
-    
+    _step_factor *= 4;*/
+  switch (range) {
+    case RANGE_2G:
+      _step_factor = 1/SCALE_RANGE_2G;
+      break;
+    case RANGE_4G:
+      _step_factor = 1/SCALE_RANGE_4G;
+      break;
+    case RANGE_8G:
+      _step_factor = 1/SCALE_RANGE_8G;
+      break;
+  }
+
   _who_am_i = _read_register(WHO_AM_I); // Get Who Am I from the device.
   // return value for MMA8541Q is 0x1A
 
-    _standby();
+  _standby();
 
-    uint8_t result = 0;
-    uint8_t datain = 0;
-    uint8_t dataout = 0;
+  uint8_t result = 0;
+  uint8_t datain = 0;
+  uint8_t dataout = 0;
 
-    datain = _read_register(SYSMOD); // Make sure MMA845x is in Stand-By mode
-    if ((datain & 0x03) != 0 ) {
-        Serial.print("MMA845x not in STAND BY mode\n\f");
-        Serial.print("MMA845x:init failed\n\r");
-        result = 1;
-        return result;
-    }
+  datain = _read_register(SYSMOD); // Make sure MMA845x is in Stand-By mode
+  if ((datain & 0x03) != 0 ) {
+      Serial.print("MMA845x not in STAND BY mode\n\f");
+      Serial.print("MMA845x:init failed\n\r");
+      result = 1;
+      return result;
+  }
 
-    // CTRL_REG1
-    datain = _read_register(CTRL_REG1);
-    dataout = (datain & 0xC1) | resolution | lo_noise | data_rate; // 0b ‭0010 1010
-    _write_register(dataout, CTRL_REG1);        // Set resolution, Low Noise mode, and data rate
+  // CTRL_REG1
+  datain = _read_register(CTRL_REG1);
+  dataout = (datain & 0xC1) | resolution | lo_noise | data_rate; // 0b ‭0010 1010
+  _write_register(dataout, CTRL_REG1);        // Set resolution, Low Noise mode, and data rate
 
-    // CTRL_REG2
-    datain = _read_register(CTRL_REG2);
-    dataout = (datain & 0xFC) | os_mode;
-    _write_register(dataout, CTRL_REG2);        // Set Oversample mode for Active State
+  // CTRL_REG2
+  datain = _read_register(CTRL_REG2);
+  dataout = (datain & 0xFC) | os_mode;
+  _write_register(dataout, CTRL_REG2);        // Set Oversample mode for Active State
 
-    // XYZ_DATA_CFG
-    datain = _read_register(XYZ_DATA_CFG); // Not used. register consists of range and hpf_mode only.
-    dataout = range | hpf_mode;
-    _write_register(dataout, XYZ_DATA_CFG);     //Set HPF mode and range
+  // XYZ_DATA_CFG
+  datain = _read_register(XYZ_DATA_CFG); // Not used. register consists of range and hpf_mode only.
+  dataout = range | hpf_mode;
+  _write_register(dataout, XYZ_DATA_CFG);     //Set HPF mode and range
 
-//    result |= MMA845x::readRegister(HP_FILTER_CUTOFF,1, datain);
-//    result |= MMA845x::writeRegister(HP_FILTER_CUTOFF, dataout); //REG 0xF HPF settings
+  //result |= MMA845x::readRegister(HP_FILTER_CUTOFF,1, datain);
+  //result |= MMA845x::writeRegister(HP_FILTER_CUTOFF, dataout); //REG 0xF HPF settings
 
-    if(result != 0) {
-        Serial.print("MMA845x:setParameters failed\n\r");
-    }
-    
-    _active();
-    
-    return result ;
+  if(result != 0) {
+      Serial.print("MMA845x:setParameters failed\n\r");
+  }
+
+  _active();
+
+  return result ;
 }
 
-uint8_t MMA8451Q::get_CTRL_REG1() 
+uint8_t MMA8451Q::get_CTRL_REG1()
 {
   return _read_register(CTRL_REG1);
 }
@@ -121,10 +130,10 @@ void MMA8451Q::update()
   Wire.beginTransmission(_addr); // Set to status reg
   Wire.write((uint8_t)0x00);
   Wire.endTransmission(false);
-  
+
   Wire.requestFrom((uint8_t)_addr, (uint8_t)(_highres ? 7 : 4));
-  
-  if (Wire.available()) 
+
+  if (Wire.available())
   {
     _stat = Wire.read();
     if(_highres)
@@ -135,18 +144,18 @@ void MMA8451Q::update()
       _xi >>= 2;
       _yi >>= 2;
       _zi >>= 2;
-      _xf = ((float) _xi / 16) * _step_factor;
+      /*_xf = ((float) _xi / 16) * _step_factor;
       _yf = ((float) _yi / 16) * _step_factor;
-      _zf = ((float) _zi / 16) * _step_factor;
+      _zf = ((float) _zi / 16) * _step_factor;*/
     }
     else
     {
       _xi = (int8_t)Wire.read();
       _yi = (int8_t)Wire.read();
       _zi = (int8_t)Wire.read();
-      _xf = _xi*_step_factor;
+      /*_xf = _xi*_step_factor;
       _yf = _yi*_step_factor;
-      _zf = _zi*_step_factor;
+      _zf = _zi*_step_factor;*/
     }
   }
 }
@@ -172,7 +181,7 @@ bool MMA8451Q::setMotionDetection()
   // OAE: 1: Motion flag (X or Y or Z > threshold), 0: Freefall flag (X and Y and Z < threshold)
   // XEFE, YEFE, ZEFE: Event flag enbale on X,Y,Z
   uint8_t dataout = XEFE | YEFE | 0 | OAE | FELE;
-  _write_register( dataout , FF_MT_CFG); 
+  _write_register( dataout , FF_MT_CFG);
 
   _active();
 }
@@ -188,38 +197,21 @@ bool MMA8451Q::setMotionThresholdG(float g, bool dbcntm)
 {
 
   _standby();
-    
+
   uint8_t ths = 0;
-  
+
   if (g > 8.0) g = 8.0;
   if (g < 0.0) g = 0.0;
-    
+
   ths = (uint8_t) (g / 8.0 * 127);
   ths &= THS_MASK;
-  
+
   if (dbcntm) _write_register((ths | DBCNTM), FF_MT_THS);
   else _write_register(ths, FF_MT_THS);
 
   _active();
 }
 
-bool MMA8451Q::setMotionThresholdN(uint8_t g, bool dbcntm)
-{
-
-  _standby();
-    
-  uint8_t ths = 0;
-  
-  if (g > 127) ths = 127;
-  if (g < 0) ths = 0;
-    
-  ths &= THS_MASK;
-  
-  if (dbcntm) _write_register((ths | DBCNTM), FF_MT_THS);
-  else _write_register(ths, FF_MT_THS);
-
-  _active();
-}
 
 //////////////////////////////////////////////////////////
 /*
@@ -242,12 +234,6 @@ uint8_t MMA8451Q::getMotionSource()
 }
 
 
-
-
-
-
-
-
 //////////////////////////////////////////////////////////
 /*
  * When HPF_BYP is set then the HPF is bypassed => NO DC REMOVAL! This would be the same as motion detection.
@@ -258,20 +244,18 @@ bool MMA8451Q::setTransientDetection()
 //  uint8_t dataout = 0 | XTEFE | YTEFE | 0 | TELE;
 //  uint8_t dataout = HPF_BYP | XTEFE | YTEFE | ZTEFE | TELE;
   uint8_t dataout = 0 | XTEFE | YTEFE | ZTEFE | TELE;
-  _write_register( dataout , TRANSIENT_CFG); 
+  _write_register( dataout , TRANSIENT_CFG);
 
   _active();
 }
 
 /*
-The highpass filter cutoff frequency can be set by the user 
-to four different frequencies which are dependent on the 
-Output Data Rate (ODR) and the oversampling mode. 
-A higher cutoff frequency ensures the DC data or slower moving data 
+The highpass filter cutoff frequency can be set by the user
+to four different frequencies which are dependent on the
+Output Data Rate (ODR) and the oversampling mode.
+A higher cutoff frequency ensures the DC data or slower moving data
 will be filtered out, allowing only the higher frequencies to pass.
  */
-
-
 
 
 //////////////////////////////////////////////////////////
@@ -290,21 +274,38 @@ reached is 4 g.
 bool MMA8451Q::setTransientThresholdG(float g, bool dbcntm)
 {
   _standby();
-    
+
   uint8_t ths = 0;
-  
+
   if (g > 8.0) g = 8.0;
   if (g < 0.0) g = 0.0;
-    
+
   ths = (uint8_t) (g / 8.0 * 127);
   ths &= THS_MASK;
-  
+
   if (dbcntm) _write_register((ths | DBCNTM), TRANSIENT_THS);
   else _write_register(ths, TRANSIENT_THS);
 
   _active();
 }
 
+bool MMA8451Q::setTransientThresholdN(uint8_t g, bool dbcntm)
+{
+
+  _standby();
+
+  //uint8_t ths = 0;
+
+  if (g > 127) g = 127;
+  if (g < 0) g = 0;
+
+  g &= THS_MASK;
+
+  if (dbcntm) _write_register((g | DBCNTM), TRANSIENT_THS);
+  else _write_register(g, TRANSIENT_THS);
+
+  _active();
+}
 
 //////////////////////////////////////////////////////////
 /*
@@ -324,11 +325,11 @@ bool MMA8451Q::setHPFilterCutOff(uint8_t n)
 {
   if (n > 3) n = 3;
 //  if (n < 0) n = 0;
-  
+
   _standby();
   uint8_t reg = _read_register(HP_FILTER_CUTOFF);
   reg &= 0b11111100;
-  reg |= (n & 0b00000011); 
+  reg |= (n & 0b00000011);
   _write_register(reg, HP_FILTER_CUTOFF);
   _active();
 }
@@ -340,19 +341,19 @@ bool MMA8451Q::setHPFilterCutOff(uint8_t n)
 bool MMA8451Q::setInterrupt(INTERRUPT_CFG_EN_SOURCE type, INTERRUPT_PIN pin, bool on)
 {
   _standby();
-  
+
 	uint8_t current_value = _read_register(CTRL_REG4);
-	
+
 	if(on) current_value |= type;
 	else   current_value &= ~(type);
-	
+
 	_write_register(current_value, CTRL_REG4);
-	
+
 	uint8_t current_routing_value = _read_register(CTRL_REG5);
-	
+
 	if (pin == INT2) current_routing_value &= ~(type);    // clear bit, set bit to 0, routed to INT2
 	else if (pin == INT1) current_routing_value |= type;  // set bit, routed to INT1
-	
+
 	_write_register(current_routing_value, CTRL_REG5);
 
   _active();
@@ -373,7 +374,7 @@ uint8_t MMA8451Q::dumpRegisters()
   Wire.endTransmission(false);
 
   Wire.requestFrom(_addr, (uint8_t) 0x32);
-  
+
   while (Wire.available()) {
     static uint8_t i = 0;
 
@@ -383,7 +384,7 @@ uint8_t MMA8451Q::dumpRegisters()
     Serial.print(",");
     Serial.print(regNames[i]);
     Serial.print(",");
-    Serial.print(reg);    
+    Serial.print(reg);
     Serial.print(",");
     _PrintHex8(&reg, 1);
     for (uint8_t k = 0; k<8; k++) {
@@ -407,7 +408,7 @@ uint8_t MMA8451Q::dumpRegisters()
 uint8_t MMA8451Q::dumpRegisters()
 {
     uint8_t reg = 0;
-    
+
     for (uint8_t i = 0; i<0x32; i++) {
 
       reg = _read_register(i);
@@ -416,7 +417,7 @@ uint8_t MMA8451Q::dumpRegisters()
       Serial.print(",");
       Serial.print(regNames[i]);
       Serial.print(",");
-      Serial.print(reg);    
+      Serial.print(reg);
       Serial.print(",");
       _PrintHex8(&reg, 1);
       for (uint8_t k = 0; k<8; k++) {
@@ -446,7 +447,7 @@ uint8_t MMA8451Q::_read_register(uint8_t offset)
   Wire.endTransmission(false);
 
   Wire.requestFrom(_addr, (uint8_t)1);
-  
+
   if (Wire.available()) return Wire.read();
   return 0;
 }
@@ -468,13 +469,13 @@ void MMA8451Q::_standby()
   Wire.beginTransmission(_addr); // Set to status reg
   Wire.write((uint8_t) CTRL_REG1);
   Wire.endTransmission(false);
-  
+
   Wire.requestFrom((uint8_t)_addr, (uint8_t)1);
 
   if (Wire.available()) reg1 = Wire.read();
 
   reg1 = reg1 & ~ACTIVE; // Clear active bit
- 
+
   Wire.beginTransmission(_addr); // Reset
   Wire.write((uint8_t) CTRL_REG1);
   Wire.write(reg1);
@@ -488,12 +489,12 @@ void MMA8451Q::_active()
   Wire.beginTransmission(_addr); // Set to status reg
   Wire.write((uint8_t) CTRL_REG1);
   Wire.endTransmission(false);
-  
+
   Wire.requestFrom((uint8_t) _addr, (uint8_t)1);
   if (Wire.available()) reg1 = Wire.read();
-  
+
   reg1 = reg1 | ACTIVE; // Set active bit
-  
+
   Wire.beginTransmission(_addr);
   Wire.write((uint8_t) CTRL_REG1);
   Wire.write(reg1);
@@ -506,7 +507,7 @@ void MMA8451Q::_PrintHex8(uint8_t *data, uint8_t length) // prints 8-bit data in
      char tmp[16];
        for (int i=0; i<length; i++) {
          sprintf(tmp, "0x%.2X",data[i]);
-         Serial.print(tmp); 
+         Serial.print(tmp);
          //Serial.print(" ");
        }
 }
@@ -518,9 +519,10 @@ void MMA8451Q::_PrintHex16(uint16_t *data, uint8_t length) // prints 16-bit data
        for (int i=0; i<length; i++)
        {
          sprintf(tmp, "0x%.4X",data[i]);
-         Serial.print(tmp); 
+         Serial.print(tmp);
          //Serial.print(" ");
        }
 }
+
 
 //end private methods

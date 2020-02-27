@@ -8,9 +8,9 @@
 #include <Arduino.h>
 //#include <Wire.h>
 //#include "custom_src/MMA8451.h"
-#include "custom_src/mpack.h"
+#include "mpack.h"
 #include <FastLED.h>
-#include "custom_src/my_MMA845XQ_V002.h"
+#include "MMA845XQ_Vibe.h"
 
 //#define TGO_BOARD
 
@@ -68,8 +68,8 @@ static const uint16_t numberOfMeas = BUFFER_SIZE;
 volatile bool g_accelerometerInterruptFlag = false;
 static bool g_timerFlag = false;
 
-static uint16_t g_threshold = 500;
-static uint16_t g_duration  = 10;
+volatile uint16_t trans_threshold = 1;
+volatile uint16_t trans_debcntr  = 2;
 
 
 typedef struct {
@@ -111,21 +111,22 @@ void setup() {
 
   pinMode(INT_PIN, INPUT_PULLUP);
   attachInterrupt(INT_PIN, accelerometerISR, FALLING);
-  uint8_t tr_src = accel.getTransientSource(); // Read to clear EA flag in case we recieved an interrupt in between setupSensor() and attachInterrupt
+  // Read to clear EA flag in case we recieved an interrupt in between setupSensor() and attachInterrupt
+  uint8_t tr_src = accel.getTransientSource();
   endWatchDog();
 }
 
 
 void loop() {
 
-  /// double check the WDT is runnning??? Is there a way?
   static uint8_t tr_src;
 
   if (g_accelerometerInterruptFlag || g_timerFlag) {
 
-    
-
     startWatchDog();
+
+    uint16_t trans_threshold_temp = trans_threshold;
+    uint16_t trans_debcntr_temp = trans_debcntr;
 
     leds[0] = CRGB::Blue;
     FastLED.show();
@@ -242,13 +243,19 @@ void loop() {
     Serial.println(F("topic subscribed"));
     Serial.println(F("checking for command.."));
     delay(2000);
-
     g_mqtt.loop();
-
+    g_mqtt.loop();
     Serial.println(F("disconnecting mqtt"));
     g_mqtt.disconnect();
 
     Serial.print(F("MQTT connected: ")); Serial.println(g_mqtt.connected() ? "YES" : "NO");
+
+    if ((trans_threshold != trans_threshold_temp) || (trans_debcntr != trans_debcntr_temp)) {
+      Serial.println(F("Reconfiguring Threshold and Debounce Counter"));
+      tr_src = accel.getTransientSource(); // Read to clear EA fla
+      accel.setTransientThresholdN(trans_threshold, false); // 0 - 127 is 0 - 8g in 0.063g increments
+      accel.setTransientDebounceCounter(trans_debcntr);
+    }
 
     endWatchDog();
 
@@ -265,8 +272,8 @@ void loop() {
     if (g_accelerometerInterruptFlag) {
       Serial.println(F("Reattaching interrupt"));
       g_accelerometerInterruptFlag = false;
-      tr_src = accel.getTransientSource(); // Read to clear EA flag
       attachInterrupt(INT_PIN, accelerometerISR, FALLING);
+      tr_src = accel.getTransientSource(); // Read to clear EA fla
     }
     startTimer();
   }
@@ -395,8 +402,9 @@ void setupSensor() {
   accel.setCommonParameters(accel.RANGE_4G, accel.RES_MAX, accel.LN_OFF, accel.DR_100, accel.OS_NORMAL, accel.HPF_OFF);
   // USE TRANSIENT DETECTION!
   accel.setTransientDetection();
-  accel.setTransientThresholdG(0.07, false);
-  accel.setTransientDebounceCounter(2);
+  //accel.setTransientThresholdG(0.07, false);
+  accel.setTransientThresholdN(trans_threshold, false);
+  accel.setTransientDebounceCounter(trans_debcntr);
   accel.setHPFilterCutOff(3);
 
   //// Using INT_PIN 2 = INT1 - DO NOT USE WITH Vibe V2.00 !!!
@@ -500,19 +508,18 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   char sender[10];
   mpack_expect_cstr(&reader, sender, 10);
 
-  mpack_expect_cstr_match(&reader, "threshold");
-  uint16_t threshold;
-  threshold = mpack_expect_u16(&reader);
+  mpack_expect_cstr_match(&reader, "trans_threshold");
+  uint16_t mqtt_trans_threshold;
+  mqtt_trans_threshold = mpack_expect_u16(&reader);
 
-  mpack_expect_cstr_match(&reader, "duration");
-  uint16_t duration;
-  duration = mpack_expect_u16(&reader);
+  mpack_expect_cstr_match(&reader, "trans_debcntr");
+  uint16_t mqtt_trans_debcntr;
+  mqtt_trans_debcntr = mpack_expect_u16(&reader);
 
   /*
     mpack_expect_cstr_match(&reader, "deadtime");
     uint16_t deadtime;
     deadtime = mpack_expect_u16(&reader);
-
     mpack_expect_cstr_match(&reader, "period");
     uint16_t period;
     period = mpack_expect_u16(&reader);
@@ -524,11 +531,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   mpack_done_map(&reader);
 
-  g_threshold = threshold;
-  g_duration = duration;
+  trans_threshold = mqtt_trans_threshold;
+  trans_debcntr = mqtt_trans_debcntr;
 
   Serial.print("sender: "); Serial.println(sender);
   Serial.print("_msgid: "); Serial.println(_msgid);
-  Serial.print("threshold: "); Serial.println(threshold);
-  Serial.print("duration: "); Serial.println(duration);
+  Serial.print("trans_threshold: "); Serial.println(trans_threshold);
+  Serial.print("trans_debcntr: "); Serial.println(trans_debcntr);
 }

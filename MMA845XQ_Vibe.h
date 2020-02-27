@@ -25,22 +25,16 @@
 // CLASS
 class MMA8451Q
 {
-
   public:
-
     uint8_t _read_register(uint8_t offset);
     void    _write_register(uint8_t b, uint8_t offset);
 
     void _PrintHex8(uint8_t *data, uint8_t length);
     void _PrintHex16(uint16_t *data, uint8_t length);
 
-
     int16_t _xi, _yi, _zi;
     float _xf, _yf, _zf;
     uint8_t _who_am_i;
-    
-//    uint16_t _threshold = 500;
-//    uint16_t _duration  = 21;
 
     /**
      *  @enum SA0
@@ -85,7 +79,6 @@ class MMA8451Q
         XYZOW = 0x80
     };
 
-
     /**
      * @enum RANGE
      * @brief values for measurement range positive and negative
@@ -94,6 +87,16 @@ class MMA8451Q
         RANGE_2G = 0,  // The total range is +- 2G, resol. 1G / 4096 counts (0.25 mg)
         RANGE_4G = 1,  // The total range is +- 4G, resol. 1G / 2048 counts (0.49 mg)
         RANGE_8G = 2   // The total range is +- 8G, resol. 1G / 1024 counts (0.98 mg)
+    };
+
+    /**
+     * @enum RANGE
+     * @brief values for measurement range positive and negative
+     */
+    enum SCALE_RANGE {
+        SCALE_RANGE_2G = 4096,  //
+        SCALE_RANGE_4G = 2048,  //
+        SCALE_RANGE_8G = 1024   //
     };
 
     /**
@@ -137,7 +140,7 @@ class MMA8451Q
         DR_6_25 = 0x30,
         DR_1_56 = 0x38
     };
-    
+
     /**
      * @enum ASLP_DATA_RATE
      * @brief values for auto_sleep mode data rate in HZ
@@ -216,7 +219,7 @@ class MMA8451Q
       ASLP_RATE0 = 0x40,
       ASLP_RATE1 = 0x80
     };
-    
+
     enum CTRL_REG2_MASKS {
       MODS0    = 0x01, // Active mode power scheme selection
       MODS1    = 0x02,
@@ -225,7 +228,7 @@ class MMA8451Q
       SMODS1   = 0x10,
       // unused 0x20,
       RST      = 0x40, // Software reset
-      ST       = 0x80  // Self-test enable     
+      ST       = 0x80  // Self-test enable
     };
 
     // FF_MT_CFG freefall/motion configuration register
@@ -245,7 +248,7 @@ class MMA8451Q
       DBCNTM   = 0x80,
       THS_MASK = 0x7F
     };
-    
+
     // FF_MT_SRC freefall/motion source register, READONLY
     enum FF_MT_SRC_MASKS {
       XHP = 0x01,
@@ -307,21 +310,16 @@ class MMA8451Q
     };
 
 
-
     MMA8451Q(uint8_t addr = MMA_8451Q_DEFAULT_ADDRESS);
 
     uint8_t SWreset();
-
     uint8_t setCommonParameters(RANGE range, RESOLUTION resolution, LOW_NOISE lo_noise, DATA_RATE data_rate, OVERSAMPLE_MODE os_mode, HPF_MODE hpf_mode);
 
     //    uint8_t set_range(RANGE range); // not implemented, yet.
     //    void begin(bool highres = true, uint8_t scale = 2);
-
     void update();
-    
     uint8_t getPLStatus();
     uint8_t getPulse();
-
 
     bool setMotionDetection();
     bool setMotionThresholdG(float g, bool dbcntm = false);
@@ -332,18 +330,14 @@ class MMA8451Q
     bool setTransientDetection();
     uint8_t getTransientSource();
     bool setTransientThresholdG(float g, bool dbcntm = false);
-	bool setMotionThresholdN(uint8_t g, bool dbcntm = false);
+	  bool setTransientThresholdN(uint8_t g, bool dbcntm = false);
     bool setTransientDebounceCounter(uint8_t n = 10);
 
     bool setHPFilterCutOff(uint8_t n);
 
-
-
     uint8_t dumpRegisters();
-
     uint8_t get_CTRL_REG1();
 
-    
     // Interrupts
     bool setInterrupt(INTERRUPT_CFG_EN_SOURCE type, INTERRUPT_PIN pin, bool on);
     bool disableAllInterrupts();
@@ -354,13 +348,13 @@ class MMA8451Q
 
 //	  uint8_t _read_register(uint8_t offset);
 //  	void    _write_register(uint8_t b, uint8_t offset);
-   
+
 //   void _PrintHex8(uint8_t *data, uint8_t length);
 //   void _PrintHex16(uint16_t *data, uint8_t length);
 
     void _standby();
     void _active();
-    
+
     uint8_t _addr;
     uint8_t _stat;
     uint8_t _scale;
@@ -369,5 +363,4 @@ class MMA8451Q
 
     float _rad2deg;
 };
-
-#endif
+#endif 
