@@ -76,11 +76,6 @@ typedef struct {
   int16_t *x;
   int16_t *y;
   int16_t *z;
-  const char *moduleID;
-  const char *moduletype;
-  const char *format;
-  const uint8_t freg; /// freg? should be freq with a "q". "freg" never used?
-  const uint16_t numberOfMeas;
 } data_t;
 
 void IRAM_ATTR accelerometerISR();
