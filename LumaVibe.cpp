@@ -4,7 +4,7 @@
 #define WATCHDOG_TIMER_NUMBER 1
 #define SLEEP_TIMER_NUMBER    0
 
-LumaVibe::LumaVibe() : _accel(0x1D) {}
+LumaVibe::LumaVibe() : _accel(0x1D), _modem(SerialAT), _client(_modem), _mqtt(_client) {}
 
 // Copy parameters only, doesn't really do anything hardware-wise
 LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t params) {
