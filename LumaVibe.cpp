@@ -8,7 +8,7 @@ LumaVibe::LumaVibe() : _accel(0x1D) {}
 
 // Copy parameters only, doesn't really do anything hardware-wise
 LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t params) {
-  if (0 == params.sleepTimeMs || 0 == params.watchDogTimeMs) {
+  if (0 == params.sleepTime_ms || 0 == params.watchDogTime_ms) {
     return ERROR_TIME_ZERO;
   }
   if (0 == params.frequency) {
@@ -47,11 +47,11 @@ LumaVibe::ERROR LumaVibe::measure() {
   this->_accelBuffer.isBufferAllocated = true;
   for (uint16_t index = 0; index  < this->_params.samplesPerMeasurement; index++) {
     uint32_t startTime = millis();
-    while (millis() - startTime < this->_params.measurementInterval_Ms);
     this->_accel.update();
     this->_accelBuffer.xi[index] = (this->_accel._xi);
     this->_accelBuffer.yi[index] = (this->_accel._yi);
     this->_accelBuffer.zi[index] = (this->_accel._zi);
+    while (millis() - startTime < _params.measurementInterval_ms);
 
     if (index % 100 == 0) {
     Serial.print(F("Index: ")); Serial.print(index);
@@ -67,12 +67,12 @@ LumaVibe::ERROR LumaVibe::measure() {
 /////////////////////
 
 //
-LumaVibe::ERROR LumaVibe::enableTimer(hw_timer_t *timer, uint8_t timerNumber, uint64_t timerMs, void (*timerISR)(void)) {
+LumaVibe::ERROR LumaVibe::enableTimer(hw_timer_t *timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)(void)) {
   if (NULL == timerBegin(timerNumber, FCLK_DIVIDER, true)) {
     return ERROR_TIMER_NULL;
   }
   timerAttachInterrupt(timer, timerISR, true);
-  timerAlarmWrite(timer, timerMs * 1000, false);
+  timerAlarmWrite(timer, timer_ms * 1000, false);
   timerAlarmEnable(timer);
   return ERROR_TIMER_NULL;
 }
