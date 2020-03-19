@@ -45,11 +45,11 @@ LumaVibe::ERROR LumaVibe::measure() {
   this->_accelBuffer.isBufferAllocated = true;
   for (uint16_t index = 0; index  < this->_params.samplesPerMeasurement; index++) {
     uint32_t startTime = millis();
-    this->_accel.update();
-    this->_accelBuffer.xi[index] = (this->_accel._xi);
-    this->_accelBuffer.yi[index] = (this->_accel._yi);
-    this->_accelBuffer.zi[index] = (this->_accel._zi);
     while (millis() - startTime < _params.measurementInterval_ms);
+    _accel.update();
+    _accelBuffer.data[index].xi = (_accel._xi);
+    _accelBuffer.data[index].yi = (_accel._yi);
+    _accelBuffer.data[index].zi = (_accel._zi);
 
     if (index % 100 == 0) {
     Serial.print(F("Index: ")); Serial.print(index);
