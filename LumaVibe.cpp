@@ -4,6 +4,12 @@
 #define WATCHDOG_TIMER_NUMBER 1
 #define SLEEP_TIMER_NUMBER    0
 
+#define SerialAT  Serial1
+#define SerialUSB Serial
+
+#define MODEM_TX 27
+#define MODEM_RX 26
+
 LumaVibe::LumaVibe() : _accel(0x1D), _modem(SerialAT), _client(_modem), _mqtt(_client) {}
 
 // Copy parameters only, doesn't really do anything hardware-wise
