@@ -83,6 +83,7 @@ LumaVibe::ERROR LumaVibe::measure() {
     }
   }
   SerialUSB.print(F("Stop time: ")); SerialUSB.println(millis());
+  keepAlive();
   return ERROR_NONE;
 }
 
