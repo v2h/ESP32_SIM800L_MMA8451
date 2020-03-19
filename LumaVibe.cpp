@@ -32,7 +32,7 @@ LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t params) {
 }
 
 //
-LumaVibe::ERROR LumaVibe::begin (uint16_t transientThreshold, uint16_t transientDebounceCntr) {
+LumaVibe::ERROR LumaVibe::begin () {
   // Initialize watchdog timer
   if (ERROR_NONE != enableTimer(_timers.watchDogTimer, WATCHDOG_TIMER_NUMBER, _params.watchDogTime_ms, _timers.watchDogISR)) {
     return ERROR_TIMER_NULL;
@@ -46,8 +46,8 @@ LumaVibe::ERROR LumaVibe::begin (uint16_t transientThreshold, uint16_t transient
   _accel.SWreset();
   _accel.setCommonParameters(_params.accelerationRange, 
                             MMA8451Q::RES_MAX, MMA8451Q::LN_OFF, MMA8451Q::DR_100, MMA8451Q::OS_NORMAL, MMA8451Q::HPF_OFF);
-  _accel.setTransientThresholdN(transientThreshold, false);
-  _accel.setTransientDebounceCounter(transientDebounceCntr);
+  _accel.setTransientThresholdN(_params.transientThreshold, false);
+  _accel.setTransientDebounceCounter(_params.transientDuration);
   _accel.setHPFilterCutOff(3);
   _accel.setInterrupt(MMA8451Q::INT_EN_TRANS, MMA8451Q::INT2, true);
   uint8_t mo_src = _accel.getMotionSource(); // Read to clear EA flag
