@@ -119,3 +119,19 @@ void LumaVibe::clearMeasurementData() {
   }
 }
 
+//
+LumaVibe::ERROR LumaVibe::setupModem() {
+  SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
+  if (!_modem.restart())
+    return ERROR_MODEM_RESTART_FAIL;
+  if (!_modem.waitForNetwork(240000L))
+    if (!_modem.isNetworkConnected())
+      return ERROR_MODEM_NETWORK;
+  if (_modem.gprsConnect("","","")) // .gprsConnect(apn, gprsUser, gprsPass)
+    return ERROR_MODEM_GPRS;
+  
+  // TODO: function to dump network and sim card information
+
+  keepAlive();
+  return ERROR_NONE;
+}
