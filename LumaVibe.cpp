@@ -38,10 +38,8 @@ LumaVibe::ERROR LumaVibe::begin() {
 
 //
 LumaVibe::ERROR LumaVibe::measure() {
-  this->_accelBuffer.xi = (int16_t *)malloc(this->_params.samplesPerMeasurement * sizeof(int16_t));
-  this->_accelBuffer.yi = (int16_t *)malloc(this->_params.samplesPerMeasurement * sizeof(int16_t));
-  this->_accelBuffer.zi = (int16_t *)malloc(this->_params.samplesPerMeasurement * sizeof(int16_t));
-  if ((NULL == this->_accelBuffer.xi) || (NULL != this->_accelBuffer.yi) || (NULL != this->_accelBuffer.zi)) {
+  _accelBuffer.data = (decltype(_accelBuffer.data))malloc(_params.samplesPerMeasurement * sizeof(*(_accelBuffer.data)));
+  if (NULL == _accelBuffer.data) {
     return ERROR_NOT_ENOUGH_MEMORY;
   }
   this->_accelBuffer.isBufferAllocated = true;
@@ -84,10 +82,8 @@ void LumaVibe::keepAlive() {
 
 //
 void LumaVibe::clearMeasurementData() {
-  if (this->_accelBuffer.isBufferAllocated) {
-    free(this->_accelBuffer.xi);
-    free(this->_accelBuffer.yi);
-    free(this->_accelBuffer.zi);
+  if (_accelBuffer.isBufferAllocated) {
+    free(_accelBuffer.data);
   }
 }
 
