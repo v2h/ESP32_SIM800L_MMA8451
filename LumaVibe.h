@@ -50,7 +50,7 @@ class LumaVibe {
 
     LumaVibe();
     ERROR init(Parameters_t params);
-    ERROR begin();
+    ERROR begin(uint16_t transientThreshold, uint16_t transientDebounceCntr);
     ERROR measure();
 
   private: 
@@ -58,10 +58,16 @@ class LumaVibe {
 
     MMA8451Q _accel;
 
+    TinyGsm       _modem;
+    TinyGsmClient _client;
+    PubSubClient  _mqtt;
+
     struct {
-      int16_t *xi;
-      int16_t *yi;
-      int16_t *zi;
+      struct {
+        int16_t xi;
+        int16_t yi;
+        int16_t zi;
+      } *data;
       bool isBufferAllocated;
     } _accelBuffer;
 
@@ -72,9 +78,10 @@ class LumaVibe {
     void (*sleepTimerISR)(void);
     } _timers;
 
-    ERROR enableTimer(hw_timer_t *timer, uint8_t timerNumber, uint64_t timerMs, void (*timerISR)(void));
+    ERROR enableTimer(hw_timer_t *timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)(void));
     void keepAlive();
     void clearMeasurementData();
+    ERROR setupModem();
 };
 
 #endif //LUMAVIBE_H
