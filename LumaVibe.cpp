@@ -98,8 +98,13 @@ LumaVibe::ERROR LumaVibe::enableTimer(hw_timer_t *timer, uint8_t timerNumber, ui
   }
   timerAttachInterrupt(timer, timerISR, true);
   timerAlarmWrite(timer, timer_ms * 1000, false);
+
+  // if the following yield() is removed, the timer will not be enabled the second time
+  // REF: https://github.com/espressif/arduino-esp32/issues/1313
+  yield();
+
   timerAlarmEnable(timer);
-  return ERROR_TIMER_NULL;
+  return ERROR_NONE;
 }
 
 //
