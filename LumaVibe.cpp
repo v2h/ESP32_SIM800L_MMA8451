@@ -78,11 +78,11 @@ LumaVibe::ERROR LumaVibe::measure() {
     _accelBuffer.data[index].zi = (_accel._zi);
 
     if (index % 100 == 0) {
-    Serial.print(F("Index: ")); Serial.print(index);
-    Serial.print(F(" at: ")); Serial.println(startTime);
+    SerialUSB.print(F("Index: ")); SerialUSB.print(index);
+    SerialUSB.print(F(" at: ")); SerialUSB.println(startTime);
     }
   }
-  Serial.print(F("Stop time: ")); Serial.println(millis());
+  SerialUSB.print(F("Stop time: ")); SerialUSB.println(millis());
   return ERROR_NONE;
 }
 
