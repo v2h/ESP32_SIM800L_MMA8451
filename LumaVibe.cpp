@@ -15,12 +15,12 @@ LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t params) {
     return ERROR_FREQUENCY_ZERO;
   }
 
-  memcpy(&this->_params, &params, sizeof(Parameters_t));
+  memcpy(&_params, &params, sizeof(Parameters_t));
 
-  this->_timers.watchDogTimer = NULL;
-  this->_timers.sleepTimer    = NULL;
+  _timers.watchDogTimer = NULL;
+  _timers.sleepTimer    = NULL;
 
-  this->_accelBuffer.isBufferAllocated = false;
+  _accelBuffer.isBufferAllocated = false;
 
   return ERROR_NONE;
 }
@@ -42,8 +42,8 @@ LumaVibe::ERROR LumaVibe::measure() {
   if (NULL == _accelBuffer.data) {
     return ERROR_NOT_ENOUGH_MEMORY;
   }
-  this->_accelBuffer.isBufferAllocated = true;
-  for (uint16_t index = 0; index  < this->_params.samplesPerMeasurement; index++) {
+  _accelBuffer.isBufferAllocated = true;
+  for (uint16_t index = 0; index  < _params.samplesPerMeasurement; index++) {
     uint32_t startTime = millis();
     while (millis() - startTime < _params.measurementInterval_ms);
     _accel.update();
@@ -77,7 +77,7 @@ LumaVibe::ERROR LumaVibe::enableTimer(hw_timer_t *timer, uint8_t timerNumber, ui
 
 //
 void LumaVibe::keepAlive() {
-  timerWrite(this->_timers.watchDogTimer, 0);
+  timerWrite(_timers.watchDogTimer, 0);
 }
 
 //
