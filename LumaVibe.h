@@ -1,33 +1,45 @@
 #ifndef LUMAVIBE_H
 #define LUMAVIBE_H
 
+#include <Arduino.h>
 #include "MMA845XQ_Vibe.h"
 #include "esp32-hal-timer.h"
+
+#define TINY_GSM_MODEM_SIM800
+#define TINY_GSM_USE_GPRS     true
+#define TINY_GSM_USE_WIFI     false
+#include <TinyGsmClient.h> // https://github.com/vshymanskyy/TinyGSM
+
+#include <PubSubClient.h>  // https://github.com/knolleary/pubsubclient
 
 class LumaVibe {
   public: 
     enum ERROR {
-      ERROR_NONE              = 0,
-      ERROR_TIME_ZERO         = 10,
-      ERROR_FREQUENCY_ZERO    = 11,
-      ERROR_TIMER_NULL        = 20,
-      ERROR_NOT_ENOUGH_MEMORY = 30,
-      ERROR_SENSOR_INIT       = 100
+      ERROR_NONE               = 0,
+      ERROR_TIME_ZERO          = 10,
+      ERROR_FREQUENCY_ZERO     = 11,
+      ERROR_TIMER_NULL         = 20,
+      ERROR_NOT_ENOUGH_MEMORY  = 30,
+      ERROR_MODEM_RESTART_FAIL = 40,
+      ERROR_MODEM_NETWORK      = 41,
+      ERROR_MODEM_GPRS = 42,
+      ERROR_SENSOR_INIT        = 100
     };
 
     typedef struct {
       char            moduleID[20];
       char            moduleType[20];
+      char            mqttBroker[20];
       char            publishTopic[20];
       char            subscribeTopic[20];
       char            format[10]; // always set to "Int16" for now, remove completely later? any use?
       uint16_t        frequency; // What should frequency actually mean?
       uint16_t        samplesPerMeasurement;
-      uint16_t        measurementInterval_Ms;
+      uint16_t        measurementInterval_ms;
       MMA8451Q::RANGE accelerationRange;
 
-      uint64_t        sleepTimeMs;
-      uint64_t        watchDogTimeMs;
+      uint64_t        sleepTime_ms;
+      uint64_t        watchDogTime_ms;
       uint16_t        transientThreshold;
       uint16_t        transientDuration;
       uint8_t         accelInterruptPin;
