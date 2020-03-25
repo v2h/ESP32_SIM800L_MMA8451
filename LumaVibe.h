@@ -28,6 +28,19 @@ bool setPowerBoostKeepOn(bool en)
   }
   return Wire.endTransmission() == 0;
 }
+#define MODEM_RST            5
+#define MODEM_PWKEY          4
+#define MODEM_POWER_ON       23
+// Set-up modem reset, enable, power pins
+void setModemPins() {
+  pinMode(MODEM_PWKEY, OUTPUT);
+  pinMode(MODEM_RST, OUTPUT);
+  pinMode(MODEM_POWER_ON, OUTPUT);
+
+  digitalWrite(MODEM_PWKEY, LOW);
+  digitalWrite(MODEM_RST, HIGH);
+  digitalWrite(MODEM_POWER_ON, HIGH);
+}
 #endif // TTGO
 
 // Marcro for handdling errors
