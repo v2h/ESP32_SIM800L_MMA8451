@@ -213,19 +213,19 @@ void LumaVibe::dumpSimInfo() {
 ///////////////////////* Private methods *///////////////////////
 /////////////////////////////////////////////////////////////////
 
-//
-LumaVibe::ERROR LumaVibe::enableTimer(hw_timer_t *timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)(void)) {
-  if (NULL == timerBegin(timerNumber, FCLK_DIVIDER, true)) {
+// Passing a pointer to a pointer to hw_timer_t, so that the original timer is updated.
+LumaVibe::ERROR LumaVibe::enableTimer(hw_timer_t **timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)()) {
+  *timer = timerBegin(timerNumber, FCLK_DIVIDER, true);
+  if (NULL == *timer)
     return ERROR_TIMER_NULL;
-  }
-  timerAttachInterrupt(timer, timerISR, true);
-  timerAlarmWrite(timer, timer_ms * 1000, false);
+  timerAttachInterrupt(*timer, timerISR, true);
+  timerAlarmWrite(*timer, timer_ms * 1000, false);
 
   // if the following yield() is removed, the timer will not be enabled the second time
   // REF: https://github.com/espressif/arduino-esp32/issues/1313
   yield();
 
-  timerAlarmEnable(timer);
+  timerAlarmEnable(*timer);
   return ERROR_NONE;
 }
 

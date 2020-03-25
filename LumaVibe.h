@@ -113,7 +113,7 @@ class LumaVibe {
     //void (*sleepTimerISR)(void);
     } _timers;
 
-    ERROR enableTimer(hw_timer_t *timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)(void));
+    ERROR enableTimer(hw_timer_t **timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)());
     void  keepAlive();
     void  clearMeasurementData();
     ERROR setupModem();
