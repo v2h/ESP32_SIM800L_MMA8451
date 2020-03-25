@@ -34,20 +34,18 @@ LumaVibe::LumaVibe() :
   {}
 
 // Copy parameters only, doesn't really do anything hardware-wise
-LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t params) {
-  if (0 == params.sleepTime_ms || 0 == params.watchDogTime_ms) {
+LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t *params) {
+  if (0 == params->sleepTime_ms || 0 == params->watchDogTime_ms) {
     return ERROR_TIME_ZERO;
   }
-  if (0 == params.frequency) {
+  if (0 == params->frequency) {
     return ERROR_FREQUENCY_ZERO;
   }
 
-  memcpy(&_params, &params, sizeof(Parameters_t));
-
-  _timers.watchDogTimer = NULL;
-  _timers.sleepTimer    = NULL;
-
+  memcpy(&_params, params, sizeof(Parameters_t));
   _accelBuffer.isBufferAllocated = false;
+  _timers.watchDogTimer = NULL;
+  _timers.sleepTimer = NULL;
 
   return ERROR_NONE;
 }

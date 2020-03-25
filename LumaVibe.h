@@ -76,7 +76,7 @@ class LumaVibe {
     } Parameters_t;
 
     LumaVibe();
-    ERROR init(Parameters_t params);
+    ERROR init(Parameters_t *params);
     ERROR begin();
     ERROR measure();
     ERROR packData(uint32_t *bytesPacked);
