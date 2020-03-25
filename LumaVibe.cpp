@@ -33,7 +33,7 @@ LumaVibe::LumaVibe() :
   _mqtt(_client) 
   {}
 
-// Copy parameters only, doesn't really do anything hardware-wise
+// Copy parameters + initialize watchdog timer
 LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t *params) {
   if (0 == params->sleepTime_ms || 0 == params->watchDogTime_ms) {
     return ERROR_TIME_ZERO;
@@ -43,19 +43,21 @@ LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t *params) {
   }
 
   memcpy(&_params, params, sizeof(Parameters_t));
+
+  // Initialize watchdog timer
+  if (ERROR_NONE != enableTimer(&_timers.watchDogTimer, WATCHDOG_TIMER_NUMBER, _params.watchDogTime_ms, _params.watchDogISR)) {
+    return ERROR_TIMER_NULL;
+  }
+
   _accelBuffer.isBufferAllocated = false;
-  _timers.watchDogTimer = NULL;
-  _timers.sleepTimer = NULL;
+  _timers.sleepTimer             = NULL;
+  accelInterruptFlag             = false;
 
   return ERROR_NONE;
 }
 
 //
-LumaVibe::ERROR LumaVibe::begin () {
-  // Initialize watchdog timer
-  if (ERROR_NONE != enableTimer(_timers.watchDogTimer, WATCHDOG_TIMER_NUMBER, _params.watchDogTime_ms, _timers.watchDogISR)) {
-    return ERROR_TIMER_NULL;
-  }
+LumaVibe::ERROR LumaVibe::begin() {
   // Begin Serial (?!)
 
   // set mqtt broker
