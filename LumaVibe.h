@@ -56,8 +56,8 @@ class LumaVibe {
       char            moduleID[20];
       char            moduleType[20];
       char            mqttBroker[20];
-      char            publishTopic[20];
-      char            subscribeTopic[20];
+      char            publishTopic[40];
+      char            subscribeTopic[40];
       char            format[10]; // always set to "Int16" for now, remove completely later? any use?
       uint8_t         msgType;
       uint16_t        frequency; // What should frequency actually mean?
