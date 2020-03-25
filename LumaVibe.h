@@ -70,9 +70,9 @@ class LumaVibe {
       uint16_t        transientThreshold;
       uint16_t        transientDuration;
       uint8_t         accelInterruptPin;
-      void            (*watchDogISR)(void);
-      void            (*sleepTimerISR)(void); 
-      void            (*accelISR)(void);
+      void            (*watchDogISR)();
+      void            (*sleepTimerISR)(); 
+      void            (*accelISR)();
     } Parameters_t;
 
     LumaVibe();
@@ -109,8 +109,8 @@ class LumaVibe {
     struct {
     hw_timer_t *watchDogTimer;
     hw_timer_t *sleepTimer;
-    void (*watchDogISR)(void);
-    void (*sleepTimerISR)(void);
+    //void (*watchDogISR)(void);
+    //void (*sleepTimerISR)(void);
     } _timers;
 
     ERROR enableTimer(hw_timer_t *timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)(void));
