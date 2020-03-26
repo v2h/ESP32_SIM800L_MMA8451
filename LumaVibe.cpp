@@ -275,13 +275,24 @@ void LumaVibe::clearMeasurementData() {
 //
 LumaVibe::ERROR LumaVibe::setupModem() {
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
+  //_modem.restart();
   if (!_modem.restart())
     return ERROR_MODEM_RESTART_FAIL;
+  String modemInfo = _modem.getModemInfo();
+  PRINT("\nmodem info: ", modemInfo);
+  dumpSimInfo();
+
+  PRINTS("\nwaiting for network...");
   if (!_modem.waitForNetwork(240000L))
     if (!_modem.isNetworkConnected())
       return ERROR_MODEM_NETWORK;
-  if (_modem.gprsConnect("","","")) // .gprsConnect(apn, gprsUser, gprsPass)
-    return ERROR_MODEM_GPRS;
+  PRINTS("\nnetwork connected...");
+  PRINTS("\nconnecting to GPRS");
+  while (!_modem.isGprsConnected()) { // ATTENTION: WHILE LOOP!!
+    _modem.gprsConnect("", "", "");
+    delay(1000);
+  }
+  PRINTS("\nGPRS connected");
   
   keepAlive();
   return ERROR_NONE;
