@@ -195,6 +195,27 @@ void LumaVibe::clearAccelInterrupt() {
   _accel.getTransientSource();
 }
 
+//
+void LumaVibe::restart() {
+  esp_restart();
+}
+
+// 
+void LumaVibe::handleError(ERROR error, uint16_t line) {
+  char errorString[40];
+  sprintf(errorString, "\nError: %u at line: %u\n", error, line);
+  PRINTS(errorString);
+  while(1);
+}
+//
+void LumaVibe::detachAccelInterrupt() {
+  detachInterrupt(_params.accelInterruptPin);
+}
+//
+void LumaVibe::enableAccelInterrupt() {
+  _accel.getTransientSource(); // Read to clear EA flag
+  attachInterrupt(_params.accelInterruptPin, _params.accelISR, FALLING);
+}
 // 
 void LumaVibe::dumpSimInfo() {
   Serial.print(F("SIM status: "));
