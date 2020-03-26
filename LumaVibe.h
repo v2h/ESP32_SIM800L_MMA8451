@@ -88,6 +88,8 @@ class LumaVibe {
       void            (*accelISR)();
     } Parameters_t;
 
+    bool accelInterruptFlag;
+
     LumaVibe();
     ERROR init(Parameters_t *params);
     ERROR begin();
@@ -95,8 +97,14 @@ class LumaVibe {
     ERROR packData(uint32_t *bytesPacked);
     ERROR publishData(uint32_t bytesToPublish, uint16_t bytesPerWrite);
     void  getCommandsFromServer(MQTT_CALLBACK_SIGNATURE);
+    void  restart();
+    void  handleError(ERROR error, uint16_t line);
+    void  readSingle(int16_t *xi, int16_t *yi, int16_t *zi);
+    void  detachAccelInterrupt();
     void  clearAccelInterrupt();
-    void dumpSimInfo();
+    void  enableAccelInterrupt();
+    void  dumpSimInfo();
+    ERROR setupModem();
 
   private: 
     Parameters_t   _params;
@@ -122,14 +130,12 @@ class LumaVibe {
     struct {
     hw_timer_t *watchDogTimer;
     hw_timer_t *sleepTimer;
-    //void (*watchDogISR)(void);
-    //void (*sleepTimerISR)(void);
     } _timers;
 
     ERROR enableTimer(hw_timer_t **timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)());
     void  keepAlive();
     void  clearMeasurementData();
-    ERROR setupModem();
+    //ERROR setupModem();
     ERROR getTimestampFromNetwork(String &timeStamp);
     void  packArray(mpack_writer_t *writer, const char *entryNames[3], const uint16_t length);
 };
