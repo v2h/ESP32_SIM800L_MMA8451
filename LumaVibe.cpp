@@ -287,14 +287,19 @@ LumaVibe::ERROR LumaVibe::setupModem() {
 }
 
 //
-LumaVibe::ERROR LumaVibe::getTimestampFromNetwork(String &timeStamp) {
-  //TODO: Get rid of Arduino's String, handle possible errors
-  String location = _modem.getGsmLocation();
-  uint8_t index = location.lastIndexOf(',', 19);
-  timeStamp = location.substring(index + 1);
-  timeStamp.replace('/', '-');
-  timeStamp.replace(',', 'T');
-
+LumaVibe::ERROR LumaVibe::getTimestampFromNetwork(char timeStamp[21]) {
+  // TODO: handle possible error
+  int year, month, day, hour, minute, second;
+  year = month = day = hour = minute = second = 0;
+  if (!_modem.getGsmLocationTime(&year, &month, &day, &hour, &minute, &second)) {
+    PRINTS("\nCannot retrieve network time, defaulting to 0000-00-26T00:00:00Z");
+  }
+  // 2020-03-26T18:37:00Z
+  uint8_t ret = sprintf(timeStamp,"%04u-%02u-%02uT%02u:%02u:%02uZ", year, month, day, hour, minute, second);
+  PRINT("\nret: ", ret);
+  PRINTS("\ntimestamp:");
+  Serial.println(String(timeStamp));
+  keepAlive();
   return ERROR_NONE;
 }
 

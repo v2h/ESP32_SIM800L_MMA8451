@@ -136,7 +136,7 @@ class LumaVibe {
     void  keepAlive();
     void  clearMeasurementData();
     //ERROR setupModem();
-    ERROR getTimestampFromNetwork(String &timeStamp);
+    ERROR getTimestampFromNetwork(char timeStamp[21]);
     void  packArray(mpack_writer_t *writer, const char *entryNames[3], const uint16_t length);
 };
 
