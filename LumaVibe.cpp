@@ -1,4 +1,9 @@
 #include "LumaVibe.h"
+#include "esp_attr.h"
+#include <stdlib.h> // For malloc()
+
+#define DEBUG_MACROS_ENABLE 1
+#include "debug_macros.h"
 
 #define FCLK_DIVIDER          80
 #define WATCHDOG_TIMER_NUMBER 1
