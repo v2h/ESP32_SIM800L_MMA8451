@@ -295,10 +295,14 @@ LumaVibe::ERROR LumaVibe::getTimestampFromNetwork(String &timeStamp) {
 
 //
 void LumaVibe::packArray(mpack_writer_t *writer, const char *entryNames[3], const uint16_t length) {
+  PRINT("\nLength: ", length);
   for (uint8_t i = 0; i < 3; i++) {
+    PRINT("\ni = ", i);
+    PRINTS("\nentry: "); PRINTS(entryNames[i]);
     mpack_write_cstr(writer, entryNames[i]);
     mpack_write_tag(writer, mpack_tag_make_array(length));
-    for (uint16_t j = 0; j < length; i++) {
+    PRINTS("\npacking [x] [y] [z] bytes");
+    for (uint16_t j = 0; j < length; j++) {
       mpack_write_i16(writer, _accelBuffer.data[j].v[i]);
     }
   }
