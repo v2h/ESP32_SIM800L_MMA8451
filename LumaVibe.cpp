@@ -197,7 +197,9 @@ void LumaVibe::getCommandsFromServer(MQTT_CALLBACK_SIGNATURE) {
 
 //
 void LumaVibe::clearAccelInterrupt() {
-  _accel._read_register(MMA8451Q::INT_SOURCE);
+  PRINTS("\nClearing interrupt\n");
+  // Reading TRANS_SRC by calling getTransientSource() already clears the SRC_TRANS bit in INT_SOURCE
+  //_accel._read_register(MMA8451Q::INT_SOURCE); 
   _accel.getTransientSource();
 }
 
