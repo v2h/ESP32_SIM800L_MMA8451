@@ -31,8 +31,8 @@ static const struct {
 } StringToPack;
 
 // Default Initializer
-LumaVibe::LumaVibe() : 
-  _accel(0x1D), 
+LumaVibe::LumaVibe() :
+  _accel(0x1D), // TODO: Move 0x1D somewhere else
   _modem(SerialAT), 
   _client(_modem), 
   _mqtt(_client) 
