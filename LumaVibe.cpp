@@ -153,18 +153,18 @@ LumaVibe::ERROR LumaVibe::packData(uint32_t *bytesPacked) {
 
 //
 LumaVibe::ERROR LumaVibe::publishData(uint32_t bytesToPublish, uint16_t bytesPerWrite) {
-  if (!_modem.isGprsConnected()) {
-    if (!_modem.gprsConnect("", "", ""));
-      return ERROR_MODEM_GPRS;
-  }
-  if (!_mqtt.connected()) {
-    if (!_mqtt.connect("sim800l", "user", "mqtt"))
-      return ERROR_MQTT;
-  }
-  keepAlive();
-  if (_mqtt.beginPublish(_params.publishTopic, bytesToPublish, false)) {
+  PRINT("\nBytes to be published: ", bytesToPublish);
+  do {
+    PRINTS("\nConnecting MQTT");
+    _mqtt.connect("sim800l", "user", "mqtt");
+  } while (!_mqtt.connected());
+  PRINT("\nMQTT state: ", _mqtt.state()); // Should be 0
+  if(!_mqtt.beginPublish(_params.publishTopic, bytesToPublish, false)) {
     return ERROR_PUBLISH_BEGIN_FAIL;
   }
+  keepAlive();
+  PRINTS("\nPublishing...");
+  PRINT("\nBytes Total: ", bytesToPublish);
   uint8_t *pointerToBuffer = (uint8_t *)_packBuffer;
   while (bytesToPublish) {
     uint16_t bytesToWrite = (bytesToPublish > bytesToPublish % bytesPerWrite ? bytesPerWrite : bytesToPublish % bytesPerWrite);
@@ -173,6 +173,7 @@ LumaVibe::ERROR LumaVibe::publishData(uint32_t bytesToPublish, uint16_t bytesPer
     pointerToBuffer += bytesWritten;
     _mqtt.loop();
     yield();
+    PRINT("\nBytes left: ", bytesToPublish);
   }
   if (!_mqtt.endPublish()) {
     return ERROR_PUBLISH_END_FAIL;
