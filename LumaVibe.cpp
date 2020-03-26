@@ -69,21 +69,26 @@ LumaVibe::ERROR LumaVibe::begin() {
   _mqtt.setServer(_params.mqttBroker, 1883);
 
   // Initialize accelerometer
+  Wire.begin();
   _accel.SWreset();
   _accel.setCommonParameters(_params.accelerationRange, 
                             MMA8451Q::RES_MAX, MMA8451Q::LN_OFF, MMA8451Q::DR_100, MMA8451Q::OS_NORMAL, MMA8451Q::HPF_OFF);
-  _accel.setTransientThresholdN(_params.transientThreshold, false);
+  _accel.setTransientDetection(); 
+  _accel.setTransientThresholdN(_params.transientThreshold, false); // 0 - 127 is 0 - 8g in 0.063g increments
   _accel.setTransientDebounceCounter(_params.transientDuration);
   _accel.setHPFilterCutOff(3);
   _accel.setInterrupt(MMA8451Q::INT_EN_TRANS, MMA8451Q::INT2, true);
-  uint8_t mo_src = _accel.getMotionSource(); // Read to clear EA flag
-  uint8_t tr_src = _accel.getTransientSource(); // Read to clear EA flag
-  
-  // Enable interrupt pin(s)
-  pinMode(_params.accelInterruptPin, INPUT_PULLUP);
-  attachInterrupt(_params.accelInterruptPin, _params.accelISR, FALLING);
+  uint8_t whoami = _accel._read_register(MMA8451Q::WHO_AM_I);
+  uint8_t mo_src = _accel.getMotionSource();
+  uint8_t tr_src = _accel.getTransientSource();
+  PRINTHEX("\nwhoami: ", whoami);
+  PRINT("\nmo_src: ", mo_src);
+  PRINT("\ntr_src: ", tr_src);
 
-  //
+  // Enable acceleration interrupt
+  pinMode(_params.accelInterruptPin, INPUT_PULLUP);
+  enableAccelInterrupt();
+  
   keepAlive();
   return ERROR_NONE;
 }
@@ -107,28 +112,37 @@ LumaVibe::ERROR LumaVibe::measure() {
     _accelBuffer.data[index].zi = (_accel._zi);
 
     if (index % 100 == 0) {
-    SerialUSB.print(F("Index: ")); SerialUSB.print(index);
-    SerialUSB.print(F(" at: ")); SerialUSB.println(startTime);
+      PRINT("Index: ", index);
+      PRINT(" at: ", startTime);
+      PRINTS("\n");
     }
   }
-  SerialUSB.print(F("Stop time: ")); SerialUSB.println(millis());
+  PRINT("\nStop time: ", millis());
   keepAlive();
   return ERROR_NONE;
 }
 
-//
+// 
 LumaVibe::ERROR LumaVibe::packData(uint32_t *bytesPacked) {
+  PRINTS("\nGPRS connecting.."); // For getting network time
+  if (!_modem.isGprsConnected()) {
+    if (!_modem.gprsConnect("", "", ""))
+      return ERROR_MODEM_GPRS;
+  }
+  PRINTS("\nGPRS connected");
+
   _packBuffer = (char *)malloc(PACKER_CAPACITY);
   if (NULL == _packBuffer) {
     return ERROR_NOT_ENOUGH_MEMORY;
   }
+  PRINTS("\nPacking header");
   mpack_writer_init(&_writer, _packBuffer, PACKER_CAPACITY);
   mpack_start_map(&_writer, 10);
-  String timeStamp;
+  char timeStamp[21] = {0};
   getTimestampFromNetwork(timeStamp);
   // TODO: refactor this shit, from here..
   mpack_write_cstr(&_writer, StringToPack.timestamp); 
-  mpack_write_cstr(&_writer, timeStamp.c_str());
+  mpack_write_cstr(&_writer, timeStamp);
   mpack_write_cstr(&_writer, StringToPack.moduleID); 
   mpack_write_cstr(&_writer, _params.moduleID);
   mpack_write_cstr(&_writer, StringToPack.moduletype);
@@ -142,11 +156,13 @@ LumaVibe::ERROR LumaVibe::packData(uint32_t *bytesPacked) {
   mpack_write_cstr(&_writer, StringToPack.numberOfMeas);
   mpack_write_u16(&_writer, _params.samplesPerMeasurement);
   // ..to here
-  const char * entries[] = {StringToPack.x_accel, StringToPack.y_accel, StringToPack.z_accel};
+  PRINTS("\nPacking array");
+  const char *entries[] = {StringToPack.x_accel, StringToPack.y_accel, StringToPack.z_accel};
   packArray(&_writer, entries, _params.samplesPerMeasurement);
+  *bytesPacked = mpack_writer_buffer_used(&_writer);
+  mpack_finish_map(&_writer);
 
-  *bytesPacked = mpack_writer_buffer_used(&_writer); // for debugging, add later
-
+  clearMeasurementData();
   keepAlive();
   return ERROR_NONE;
 }
@@ -181,6 +197,8 @@ LumaVibe::ERROR LumaVibe::publishData(uint32_t bytesToPublish, uint16_t bytesPer
 
   free(_packBuffer);
   _packBuffer = NULL;
+  clearMeasurementData();
+  PRINTS("\nPublishing done");
   return ERROR_NONE;
 }
 
@@ -213,20 +231,22 @@ void LumaVibe::handleError(ERROR error, uint16_t line) {
   char errorString[40];
   sprintf(errorString, "\nError: %u at line: %u\n", error, line);
   PRINTS(errorString);
-  while(1);
+  while (1);
 }
 //
 void LumaVibe::detachAccelInterrupt() {
   detachInterrupt(_params.accelInterruptPin);
 }
+
 //
 void LumaVibe::enableAccelInterrupt() {
   _accel.getTransientSource(); // Read to clear EA flag
   attachInterrupt(_params.accelInterruptPin, _params.accelISR, FALLING);
 }
+
 // 
 void LumaVibe::dumpSimInfo() {
-  Serial.print(F("SIM status: "));
+  Serial.print(F("\nSIM status: "));
   uint8_t simStatus = _modem.getSimStatus();
   Serial.println(simStatus);
   String ccid = _modem.getSimCCID();
@@ -271,6 +291,7 @@ void LumaVibe::clearMeasurementData() {
     free(_accelBuffer.data);
     _accelBuffer.data = NULL;
     _accelBuffer.isBufferAllocated = false;
+    PRINTS("\nMeasurement Data Cleared");
   }
 }
 
@@ -310,7 +331,6 @@ LumaVibe::ERROR LumaVibe::getTimestampFromNetwork(char timeStamp[21]) {
   }
   // 2020-03-26T18:37:00Z
   uint8_t ret = sprintf(timeStamp,"%04u-%02u-%02uT%02u:%02u:%02uZ", year, month, day, hour, minute, second);
-  PRINT("\nret: ", ret);
   PRINTS("\ntimestamp:");
   Serial.println(String(timeStamp));
   keepAlive();
@@ -321,11 +341,9 @@ LumaVibe::ERROR LumaVibe::getTimestampFromNetwork(char timeStamp[21]) {
 void LumaVibe::packArray(mpack_writer_t *writer, const char *entryNames[3], const uint16_t length) {
   PRINT("\nLength: ", length);
   for (uint8_t i = 0; i < 3; i++) {
-    PRINT("\ni = ", i);
     PRINTS("\nentry: "); PRINTS(entryNames[i]);
     mpack_write_cstr(writer, entryNames[i]);
     mpack_write_tag(writer, mpack_tag_make_array(length));
-    PRINTS("\npacking [x] [y] [z] bytes");
     for (uint16_t j = 0; j < length; j++) {
       mpack_write_i16(writer, _accelBuffer.data[j].v[i]);
     }
