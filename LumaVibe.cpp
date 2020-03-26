@@ -18,16 +18,16 @@
 #define MODEM_RX 26
 
 static const struct {
-  char *timestamp    = "timestamp";
-  char *moduleID     = "moduleID";
-  char *moduletype   = "moduletype";
-  char *msgtype      = "msgtype";
-  char *format       = "format";
-  char *freq         = "freq";
-  char *numberOfMeas = "numberOfMeas";
-  char *x_accel      = "x-accel";
-  char *y_accel      = "y-accel";
-  char *z_accel      = "z-accel";
+  const char * const timestamp    = "timestamp";
+  const char * const moduleID     = "moduleID";
+  const char * const moduletype   = "moduletype";
+  const char * const msgtype      = "msgtype";
+  const char * const format       = "format";
+  const char * const freq         = "freq";
+  const char * const numberOfMeas = "numberOfMeas";
+  const char * const x_accel      = "x-accel";
+  const char * const y_accel      = "y-accel";
+  const char * const z_accel      = "z-accel";
 } StringToPack;
 
 // Default Initializer
