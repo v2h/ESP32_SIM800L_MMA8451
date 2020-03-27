@@ -17,6 +17,8 @@
 #define MODEM_TX 27
 #define MODEM_RX 26
 
+#define mG_PER_COUNT 63
+
 static const struct {
   const char * const timestamp    = "timestamp";
   const char * const moduleID     = "moduleID";
@@ -74,7 +76,7 @@ LumaVibe::ERROR LumaVibe::begin() {
   _accel.setCommonParameters(_params.accelerationRange, 
                             MMA8451Q::RES_MAX, MMA8451Q::LN_OFF, MMA8451Q::DR_100, MMA8451Q::OS_NORMAL, MMA8451Q::HPF_OFF);
   _accel.setTransientDetection(); 
-  _accel.setTransientThresholdN(_params.transientThreshold, false); // 0 - 127 is 0 - 8g in 0.063g increments
+  _accel.setTransientThresholdN(_params.transientThreshold_mG / mG_PER_COUNT, false); // 0 - 127 is 0 - 8g in 0.063g increments
   _accel.setTransientDebounceCounter(_params.transientDuration);
   _accel.setHPFilterCutOff(3);
   _accel.setInterrupt(MMA8451Q::INT_EN_TRANS, MMA8451Q::INT2, true);
@@ -260,6 +262,17 @@ void LumaVibe::dumpSimInfo() {
   Serial.println(cop);
 }
 
+//
+void LumaVibe::setTransientThreshold(uint16_t threshold_mG) {
+  _params.transientThreshold_mG = threshold_mG;
+  _accel.setTransientThresholdN((uint8_t)(_params.transientThreshold_mG / mG_PER_COUNT));
+}
+
+//
+void LumaVibe::setTransientDuration(uint16_t duration) {
+  _params.transientDuration = duration;
+  _accel.setTransientDebounceCounter(_params.transientDuration);
+}
 //////////////////////////////////////////////////////////////////
 ///////////////////////* Private methods *///////////////////////
 /////////////////////////////////////////////////////////////////

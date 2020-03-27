@@ -80,7 +80,7 @@ class LumaVibe {
 
       uint64_t        sleepTime_ms;
       uint64_t        watchDogTime_ms;
-      uint16_t        transientThreshold;
+      uint16_t        transientThreshold_mG;
       uint16_t        transientDuration;
       uint8_t         accelInterruptPin;
       void            (*watchDogISR)();
@@ -106,6 +106,8 @@ class LumaVibe {
     void  dumpSimInfo();
     ERROR setupModem();
 
+    void setTransientThreshold(uint16_t threshold_mG);
+    void setTransientDuration(uint16_t duration);
   private: 
     Parameters_t   _params;
     MMA8451Q       _accel;
