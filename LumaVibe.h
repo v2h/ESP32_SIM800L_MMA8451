@@ -106,8 +106,12 @@ class LumaVibe {
     void  dumpSimInfo();
     ERROR setupModem();
 
+    void endWatchDog();
+
     void setTransientThreshold(uint16_t threshold_mG);
     void setTransientDuration(uint16_t duration);
+    void goToSleep(uint64_t duration_ms);
+
   private: 
     Parameters_t   _params;
     MMA8451Q       _accel;

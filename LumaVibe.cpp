@@ -32,6 +32,10 @@ static const struct {
   const char * const z_accel      = "z-accel";
 } StringToPack;
 
+// section attribute cannot live in Class
+static RTC_DATA_ATTR uint32_t BootCount   = 0;
+static RTC_DATA_ATTR bool     SleepEnable = false;
+
 // Default Initializer
 LumaVibe::LumaVibe() :
   _accel(0x1D), // TODO: Move 0x1D somewhere else
@@ -65,12 +69,18 @@ LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t *params) {
 
 //
 LumaVibe::ERROR LumaVibe::begin() {
+  PRINT("\nBoot count: ", BootCount++);
+  if (SleepEnable) {
+    PRINTS("\nJust woke up\n");
+    SleepEnable = false;
+  }
   // Begin Serial (?!)
 
   // set mqtt broker
   _mqtt.setServer(_params.mqttBroker, 1883);
 
   // Initialize accelerometer
+  PRINTS("\nInitializing accelerometer");
   Wire.begin();
   _accel.SWreset();
   _accel.setCommonParameters(_params.accelerationRange, 
@@ -277,6 +287,28 @@ void LumaVibe::setTransientDuration(uint16_t duration) {
   _params.transientDuration = duration;
   _accel.setTransientDebounceCounter(_params.transientDuration);
 }
+
+//
+void LumaVibe::goToSleep(uint64_t duration_ms) {
+  PRINTS("\nGoing to sleep..");
+  endWatchDog();
+  esp_sleep_enable_timer_wakeup(duration_ms * 1000);
+  if (_modem.gprsDisconnect()) {
+    PRINTS("\nGPRS disconnected");
+  }
+  if (_modem.sleepEnable()) {
+    PRINTS("\nModem put to sleep");
+  }
+  PRINTS("\nGoodnight!\n");
+  SleepEnable = true;
+  esp_deep_sleep_start();
+}
+
+//
+void LumaVibe::endWatchDog(){
+  timerEnd(_timers.watchDogTimer);
+}
+
 //////////////////////////////////////////////////////////////////
 ///////////////////////* Private methods *///////////////////////
 /////////////////////////////////////////////////////////////////
