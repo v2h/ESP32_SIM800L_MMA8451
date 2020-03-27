@@ -283,7 +283,7 @@ void LumaVibe::setTransientThreshold(uint16_t threshold_mG) {
 }
 
 //
-void LumaVibe::setTransieentDuration(uint16_t duration) {
+void LumaVibe::setTransientDuration(uint16_t duration) {
   _params.transientDuration = duration;
   _accel.setTransientDebounceCounter(_params.transientDuration);
 }
