@@ -192,6 +192,10 @@ LumaVibe::ERROR LumaVibe::publishData(uint32_t bytesToPublish, uint16_t bytesPer
     _mqtt.loop();
     yield();
     PRINT("\nBytes left: ", bytesToPublish);
+    while (MQTT_CONNECTED != _mqtt.state()) {
+      PRINTS("\nReconnecting MQTT");
+      _mqtt.connect("sim800l", "user", "mqtt");
+    }
   }
   if (!_mqtt.endPublish()) {
     return ERROR_PUBLISH_END_FAIL;
