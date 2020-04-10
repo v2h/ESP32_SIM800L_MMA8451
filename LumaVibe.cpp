@@ -378,7 +378,7 @@ LumaVibe::ERROR LumaVibe::getTimestampFromNetwork(char timeStamp[21]) {
     PRINTS("\nCannot retrieve network time, defaulting to 0000-00-26T00:00:00Z");
   }
   // 2020-03-26T18:37:00Z
-  uint8_t ret = sprintf(timeStamp,"%04u-%02u-%02uT%02u:%02u:%02uZ", year, month, day, hour, minute, second);
+  sprintf(timeStamp,"%04u-%02u-%02uT%02u:%02u:%02uZ", year, month, day, hour, minute, second);
   PRINTS("\ntimestamp:");
   Serial.println(String(timeStamp));
   keepAlive();
