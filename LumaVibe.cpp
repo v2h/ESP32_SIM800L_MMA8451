@@ -45,21 +45,21 @@ LumaVibe::LumaVibe() :
   {}
 
 // Copy parameters + initialize watchdog timer
-LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t *params) {
-  if (0 == params->sleepTime_ms || 0 == params->watchDogTime_ms) {
+LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t *p) {
+  if (0 == p->sleepTime_ms || 0 == p->watchDogTime_ms) {
     return ERROR_TIME_ZERO;
   }
-  if (0 == params->frequency) {
+  if (0 == p->frequency) {
     return ERROR_FREQUENCY_ZERO;
   }
 
-  memcpy(&_params, params, sizeof(Parameters_t));
 
   // Initialize watchdog timer
   if (ERROR_NONE != enableTimer(&_timers.watchDogTimer, WATCHDOG_TIMER_NUMBER, _params.watchDogTime_ms, _params.watchDogISR)) {
     return ERROR_TIMER_NULL;
   }
 
+  memcpy(&_params, p, sizeof(Parameters_t));
   _accelBuffer.isBufferAllocated = false;
   _timers.sleepTimer             = NULL;
   accelInterruptFlag             = false;

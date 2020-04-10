@@ -91,7 +91,7 @@ class LumaVibe {
     bool accelInterruptFlag;
 
     LumaVibe();
-    ERROR init(Parameters_t *params);
+    ERROR init(Parameters_t *p);
     ERROR begin();
     ERROR measure();
     ERROR packData(uint32_t *bytesPacked);
