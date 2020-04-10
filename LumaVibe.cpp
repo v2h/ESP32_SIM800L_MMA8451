@@ -32,9 +32,8 @@ static const struct {
   const char * const z_accel      = "z-accel";
 } StringToPack;
 
-// section attribute cannot live in Class
-static RTC_DATA_ATTR uint32_t BootCount   = 0;
-static RTC_DATA_ATTR bool     SleepEnable = false;
+// Initialize static variables in class
+uint64_t LumaVibe::_bootCount = 0;
 
 // Default Initializer
 LumaVibe::LumaVibe() :
