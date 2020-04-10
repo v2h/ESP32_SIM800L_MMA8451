@@ -1,3 +1,9 @@
+/*
+Only RTC IO can be used as a source for external wake
+source. They are pins: 0,2,4,12-15,25-27,32-39.
+https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/DeepSleep/ExternalWakeUp/ExternalWakeUp.ino
+*/
+
 #include "LumaVibe.h"
 #include "esp_attr.h"
 #include <stdlib.h> // For malloc()
@@ -51,64 +57,65 @@ LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t *p) {
   if (0 == p->frequency) {
     return ERROR_FREQUENCY_ZERO;
   }
-
-
   // Initialize watchdog timer
   if (ERROR_NONE != enableTimer(&_timers.watchDogTimer, WATCHDOG_TIMER_NUMBER, _params.watchDogTime_ms, _params.watchDogISR)) {
     return ERROR_TIMER_NULL;
   }
-
   memcpy(&_params, p, sizeof(Parameters_t));
+  _mqtt.setServer(_params.mqttBroker, 1883);
   _accelBuffer.isBufferAllocated = false;
-  _timers.sleepTimer             = NULL;
-  accelInterruptFlag             = false;
+  _timers.sleepTimer = NULL;
 
   return ERROR_NONE;
 }
 
 //
 LumaVibe::ERROR LumaVibe::begin() {
-  PRINT("\nBoot count: ", BootCount++);
-  if (SleepEnable) {
-    PRINTS("\nJust woke up\n");
-    SleepEnable = false;
-  }
-  // Begin Serial (?!)
-
-  // set mqtt broker
-  _mqtt.setServer(_params.mqttBroker, 1883);
-
-  // Initialize accelerometer
-  PRINTS("\nInitializing accelerometer");
-  Wire.begin();
-  _accel.SWreset();
-  _accel.setCommonParameters(_params.accelerationRange, 
-                            MMA8451Q::RES_MAX, MMA8451Q::LN_OFF, MMA8451Q::DR_100, MMA8451Q::OS_NORMAL, MMA8451Q::HPF_OFF);
-  _accel.setTransientDetection(); 
-  _accel.setTransientThresholdN(_params.transientThreshold_mG / mG_PER_COUNT, false); // 0 - 127 is 0 - 8g in 0.063g increments
-  _accel.setTransientDebounceCounter(_params.transientDuration);
-  _accel.setHPFilterCutOff(3);
-  _accel.setInterrupt(MMA8451Q::INT_EN_TRANS, MMA8451Q::INT2, true);
-  uint8_t whoami = _accel._read_register(MMA8451Q::WHO_AM_I);
-  uint8_t mo_src = _accel.getMotionSource();
-  uint8_t tr_src = _accel.getTransientSource();
-  PRINTHEX("\nwhoami: ", whoami);
-  PRINT("\nmo_src: ", mo_src);
-  PRINT("\ntr_src: ", tr_src);
-
-  // Enable acceleration interrupt
-  pinMode(_params.accelInterruptPin, INPUT_PULLUP);
-  enableAccelInterrupt();
-  
-  keepAlive();
+  //if (0 == _bootCount) {
+    PRINTS("\nFirst blood...I mean first boot");
+    // Initialize accelerometer
+    PRINTS("\nInitializing accelerometer");
+    Wire.begin();
+    _accel.SWreset();
+    _accel.setCommonParameters(_params.accelerationRange,
+                               MMA8451Q::RES_MAX, MMA8451Q::LN_OFF, MMA8451Q::DR_100, MMA8451Q::OS_NORMAL, MMA8451Q::HPF_OFF);
+    _accel.setTransientDetection();
+    _accel.setTransientThresholdN(_params.transientThreshold_mG / mG_PER_COUNT, false);  // 0 - 127 is 0 - 8g in 0.063g increments
+    _accel.setTransientDebounceCounter(_params.transientDuration);
+    _accel.setHPFilterCutOff(3);
+    _accel.setInterrupt(MMA8451Q::INT_EN_TRANS, MMA8451Q::INT2, true);
+    uint8_t whoami = _accel._read_register(MMA8451Q::WHO_AM_I);
+    PRINTHEX("\nwhoami: ", whoami);
+    clearAccelInterrupt();
+    enableAccelInterrupt();
+    accelInterruptFlag = false;
+    timerInterruptFlag = false;
+    keepAlive();
+  //} 
+  //else {
+    //Wire.begin(); // This prevents the AccelISR to be called 
+    esp_sleep_wakeup_cause_t wakeupReason = esp_sleep_get_wakeup_cause();
+    switch (wakeupReason) {
+      case ESP_SLEEP_WAKEUP_EXT0:
+        accelInterruptFlag = true;
+        PRINTS("\nWoken up by accelerometer");
+        break;
+      case ESP_SLEEP_WAKEUP_TIMER:
+        timerInterruptFlag = true;
+        PRINTS("\nWoken up by timer");
+        break;
+      default:
+        PRINTS("\nWakeup was not caused by deep sleep: %d\n");
+        break;
+    }
+  //}
+  _bootCount++; // Caution: when to increment bootCount??
   return ERROR_NONE;
 }
 
 //
 LumaVibe::ERROR LumaVibe::measure() {
-  if (_accelBuffer.isBufferAllocated) {
-    clearMeasurementData();
-  }
+  clearMeasurementData();
   _accelBuffer.data = (decltype(_accelBuffer.data))malloc(_params.samplesPerMeasurement * sizeof(*(_accelBuffer.data)));
   if (NULL == _accelBuffer.data) {
     return ERROR_NOT_ENOUGH_MEMORY;
@@ -123,9 +130,8 @@ LumaVibe::ERROR LumaVibe::measure() {
     _accelBuffer.data[index].zi = (_accel._zi);
 
     if (index % 100 == 0) {
-      PRINT("Index: ", index);
+      PRINT("\nIndex: ", index);
       PRINT(" at: ", startTime);
-      PRINTS("\n");
     }
   }
   PRINT("\nStop time: ", millis());
@@ -135,12 +141,18 @@ LumaVibe::ERROR LumaVibe::measure() {
 
 // 
 LumaVibe::ERROR LumaVibe::packData(uint32_t *bytesPacked) {
-  PRINTS("\nGPRS connecting.."); // For getting network time
+/*   PRINTS("\nPacking data...");
   if (!_modem.isGprsConnected()) {
+    PRINTS("\nGPRS connecting.."); // For getting network time
     if (!_modem.gprsConnect("", "", ""))
       return ERROR_MODEM_GPRS;
   }
-  PRINTS("\nGPRS connected");
+  PRINTS("\nGPRS connected"); */
+
+  ERROR err = setupModem();
+  if (ERROR_NONE != err) {
+    return err;
+  }
 
   _packBuffer = (char *)malloc(PACKER_CAPACITY);
   if (NULL == _packBuffer) {
@@ -184,8 +196,9 @@ LumaVibe::ERROR LumaVibe::publishData(uint32_t bytesToPublish, uint16_t bytesPer
   do {
     PRINTS("\nConnecting MQTT");
     _mqtt.connect("sim800l", "user", "mqtt");
+    PRINT("\nMQTT state: ", _mqtt.state()); // Should be 0
+    delay(1000);
   } while (!_mqtt.connected());
-  PRINT("\nMQTT state: ", _mqtt.state()); // Should be 0
   if(!_mqtt.beginPublish(_params.publishTopic, bytesToPublish, false)) {
     return ERROR_PUBLISH_BEGIN_FAIL;
   }
@@ -230,10 +243,12 @@ void LumaVibe::getCommandsFromServer(MQTT_CALLBACK_SIGNATURE) {
 
 //
 void LumaVibe::clearAccelInterrupt() {
-  PRINTS("\nClearing interrupt\n");
+  PRINTS("\nClearing interrupt");
   // Reading TRANS_SRC by calling getTransientSource() already clears the SRC_TRANS bit in INT_SOURCE
-  //_accel._read_register(MMA8451Q::INT_SOURCE); 
-  _accel.getTransientSource();
+  // uint8_t motionSrc = _accel.getMotionSource(); // No need
+  // uint8_t intSrc    = _accel._read_register(MMA8451Q::INT_SOURCE); // No need
+  uint8_t tranSrc   = _accel.getTransientSource();
+  PRINT("\ntranSrc: ", tranSrc);
 }
 
 //
@@ -248,6 +263,15 @@ void LumaVibe::handleError(ERROR error, uint16_t line) {
   PRINTS(errorString);
   while (1);
 }
+
+//
+void LumaVibe::readSingle(int16_t *xi, int16_t *yi, int16_t *zi) {
+  _accel.update();
+  *xi = _accel._xi;
+  *yi = _accel._yi;
+  *zi = _accel._zi;
+}
+
 //
 void LumaVibe::detachAccelInterrupt() {
   detachInterrupt(_params.accelInterruptPin);
@@ -255,8 +279,9 @@ void LumaVibe::detachAccelInterrupt() {
 
 //
 void LumaVibe::enableAccelInterrupt() {
-  _accel.getTransientSource(); // Read to clear EA flag
+  pinMode(_params.accelInterruptPin, INPUT_PULLUP);
   attachInterrupt(_params.accelInterruptPin, _params.accelISR, FALLING);
+  PRINTS("\nAcceleration interrupt enabled");
 }
 
 // 
@@ -290,22 +315,32 @@ void LumaVibe::setTransientDuration(uint16_t duration) {
 //
 void LumaVibe::goToSleep(uint64_t duration_ms) {
   PRINTS("\nGoing to sleep..");
-  endWatchDog();
-  esp_sleep_enable_timer_wakeup(duration_ms * 1000);
-  if (_modem.gprsDisconnect()) {
-    PRINTS("\nGPRS disconnected");
-  }
+  if (_modem.isGprsConnected())
+    if (_modem.gprsDisconnect()) {
+      PRINTS("\nGPRS disconnected");
+    }
+  
   if (_modem.sleepEnable()) {
     PRINTS("\nModem put to sleep");
   }
+  
+  esp_sleep_enable_timer_wakeup(duration_ms * 1000);
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_15, LOW); //(gpio_num_t)_params.accelInterruptPin
   PRINTS("\nGoodnight!\n");
-  SleepEnable = true;
+  SerialUSB.flush();
+  delay(3000);
+  endWatchDog();
   esp_deep_sleep_start();
 }
 
 //
 void LumaVibe::endWatchDog(){
   timerEnd(_timers.watchDogTimer);
+}
+
+//
+bool LumaVibe::isFirstBoot() {
+  return (1 == _bootCount); // CAUTION: 1 or 0?
 }
 
 //////////////////////////////////////////////////////////////////
@@ -345,6 +380,7 @@ void LumaVibe::clearMeasurementData() {
 
 //
 LumaVibe::ERROR LumaVibe::setupModem() {
+  PRINTS("\nSetting up modem");
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
   //_modem.restart();
   if (!_modem.restart())
@@ -374,8 +410,15 @@ LumaVibe::ERROR LumaVibe::getTimestampFromNetwork(char timeStamp[21]) {
   // TODO: handle possible error
   int year, month, day, hour, minute, second;
   year = month = day = hour = minute = second = 0;
-  if (!_modem.getGsmLocationTime(&year, &month, &day, &hour, &minute, &second)) {
-    PRINTS("\nCannot retrieve network time, defaulting to 0000-00-26T00:00:00Z");
+  for (uint8_t i = 0; i < 3; i++) {
+    if (!_modem.getGsmLocationTime(&year, &month, &day, &hour, &minute, &second)) {
+      PRINTS("\nCannot retrieve network time, defaulting to 0000-00-00T00:00:00Z");
+      yield();
+    }
+    else {
+      PRINTS("\nNetwork time retrieved");
+      break;
+    }
   }
   // 2020-03-26T18:37:00Z
   sprintf(timeStamp,"%04u-%02u-%02uT%02u:%02u:%02uZ", year, month, day, hour, minute, second);
