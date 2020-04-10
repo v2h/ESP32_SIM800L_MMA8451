@@ -89,6 +89,7 @@ class LumaVibe {
     } Parameters_t;
 
     bool accelInterruptFlag;
+    bool timerInterruptFlag;
 
     LumaVibe();
     ERROR init(Parameters_t *p);
@@ -111,6 +112,7 @@ class LumaVibe {
     void setTransientThreshold(uint16_t threshold_mG);
     void setTransientDuration(uint16_t duration);
     void goToSleep(uint64_t duration_ms);
+    bool isFirstBoot();
 
   private: 
     Parameters_t   _params;
@@ -120,6 +122,8 @@ class LumaVibe {
     PubSubClient   _mqtt;
     mpack_writer_t _writer;
     char           *_packBuffer;
+
+    static RTC_DATA_ATTR uint64_t _bootCount;
 
     struct {
       union {
