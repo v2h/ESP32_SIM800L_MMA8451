@@ -28,9 +28,11 @@ bool setPowerBoostKeepOn(bool en)
   }
   return Wire.endTransmission() == 0;
 }
-#define MODEM_RST            5
-#define MODEM_PWKEY          4
-#define MODEM_POWER_ON       23
+
+// https://electronics.stackexchange.com/questions/287418/sim800-pwrkey-automatic-start
+#define MODEM_RST      5  // Active low (also low after modem.sleepEnable() is called)
+#define MODEM_PWKEY    4 // [Pulled up] drive down to turn on the modem
+#define MODEM_POWER_ON 23 // [Pulled-up] active high
 // Set-up modem reset, enable, power pins
 void setModemPins() {
   pinMode(MODEM_PWKEY, OUTPUT);

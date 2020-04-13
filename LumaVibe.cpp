@@ -71,7 +71,6 @@ LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t *p) {
 
 //
 LumaVibe::ERROR LumaVibe::begin() {
-  //if (0 == _bootCount) {
     PRINTS("\nFirst blood...I mean first boot");
     // Initialize accelerometer
     PRINTS("\nInitializing accelerometer");
@@ -91,9 +90,6 @@ LumaVibe::ERROR LumaVibe::begin() {
     accelInterruptFlag = false;
     timerInterruptFlag = false;
     keepAlive();
-  //} 
-  //else {
-    //Wire.begin(); // This prevents the AccelISR to be called 
     esp_sleep_wakeup_cause_t wakeupReason = esp_sleep_get_wakeup_cause();
     switch (wakeupReason) {
       case ESP_SLEEP_WAKEUP_EXT0:
@@ -108,7 +104,6 @@ LumaVibe::ERROR LumaVibe::begin() {
         PRINTS("\nWakeup was not caused by deep sleep: %d\n");
         break;
     }
-  //}
   _bootCount++; // Caution: when to increment bootCount??
   return ERROR_NONE;
 }
