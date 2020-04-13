@@ -40,6 +40,7 @@ static const struct {
 
 // Initialize static variables in class
 uint64_t LumaVibe::_bootCount = 0;
+LumaVibe::Parameters_t LumaVibe::_params    = {0};
 
 // Default Initializer
 LumaVibe::LumaVibe() :
