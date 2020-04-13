@@ -27,6 +27,7 @@ void IRAM_ATTR accelerometerISR() {
 //
 void IRAM_ATTR watchDogISR() {
   PRINTS("\nRestarting\n");
+  hardResetModem();
   g_Vibe.restart();
 }
 

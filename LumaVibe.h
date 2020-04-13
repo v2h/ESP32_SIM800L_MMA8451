@@ -43,6 +43,12 @@ void setModemPins() {
   digitalWrite(MODEM_RST, HIGH);
   digitalWrite(MODEM_POWER_ON, HIGH);
 }
+
+void hardResetModem() {
+  digitalWrite(MODEM_RST, LOW);
+  delay(200); // must be more than 105ms
+  digitalWrite(MODEM_RST, HIGH);
+}
 #endif // TTGO
 
 // Marcro for handdling errors
