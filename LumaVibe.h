@@ -124,6 +124,7 @@ class LumaVibe {
 
   private: 
     Parameters_t   _params;
+    static RTC_DATA_ATTR Parameters_t _params; // stored in RTC memory
     MMA8451Q       _accel;
     TinyGsm        _modem;
     TinyGsmClient  _client;
