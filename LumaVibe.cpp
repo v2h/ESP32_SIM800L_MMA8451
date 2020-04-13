@@ -315,19 +315,29 @@ void LumaVibe::setTransientDuration(uint16_t duration) {
 }
 
 //
-void LumaVibe::goToSleep(uint64_t duration_ms) {
+void LumaVibe::setPeriod(uint32_t period_s) {
+  _params.sleepTime_ms = period_s * 1000;
+}
+
+//
+void LumaVibe::goToSleep(void) {
   PRINTS("\nGoing to sleep..");
+  PRINT("\nSleep time: ", (long)_params.sleepTime_ms);
   if (_modem.isGprsConnected())
     if (_modem.gprsDisconnect()) {
       PRINTS("\nGPRS disconnected");
-    }
-  
+  }
   if (_modem.sleepEnable()) {
     PRINTS("\nModem put to sleep");
   }
+#ifdef TTGO
+  if (setPowerBoostKeepOn(false)) {
+    PRINTS("Power boost turned off");
+  }
+#endif
   
-  esp_sleep_enable_timer_wakeup(duration_ms * 1000);
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_15, LOW); //(gpio_num_t)_params.accelInterruptPin
+  esp_sleep_enable_timer_wakeup(_params.sleepTime_ms * 1000);
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)_params.accelInterruptPin, LOW); //(gpio_num_t)_params.accelInterruptPin
   PRINTS("\nGoodnight!\n");
   SerialUSB.flush();
   delay(3000);

@@ -91,7 +91,7 @@ void loop() {
     g_Vibe.accelInterruptFlag = false;
     g_Vibe.timerInterruptFlag = false;
     g_Vibe.enableAccelInterrupt();
-    g_Vibe.goToSleep(240000);
+    g_Vibe.goToSleep();
   }
   if (g_Vibe.accelInterruptFlag || g_Vibe.timerInterruptFlag) {
     g_Vibe.detachAccelInterrupt();
@@ -123,7 +123,7 @@ void loop() {
     g_Vibe.accelInterruptFlag = false;
     g_Vibe.timerInterruptFlag = false;
     g_Vibe.enableAccelInterrupt();
-    g_Vibe.goToSleep(240000);
+    g_Vibe.goToSleep();
   }
 }
 

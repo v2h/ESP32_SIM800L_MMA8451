@@ -119,7 +119,7 @@ class LumaVibe {
 
     void setTransientThreshold(uint16_t threshold_mG);
     void setTransientDuration(uint16_t duration);
-    void goToSleep(uint64_t duration_ms);
+    void goToSleep(void);
     bool isFirstBoot();
 
   private: 
