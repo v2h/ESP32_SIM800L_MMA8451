@@ -156,10 +156,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     mpack_expect_cstr_match(&reader, "deadtime");
     uint16_t deadtime;
     deadtime = mpack_expect_u16(&reader);
-    mpack_expect_cstr_match(&reader, "period");
-    uint16_t period;
-    period = mpack_expect_u16(&reader);
   */
+  mpack_expect_cstr_match(&reader, "period");
+  uint64_t period;
+  period = mpack_expect_u16(&reader);
+
 
   mpack_expect_cstr_match(&reader, "_msgid");
   char _msgid[20];
@@ -169,9 +170,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   g_Vibe.setTransientThreshold(transientThreshold);
   g_Vibe.setTransientDuration(transientDuration);
+  g_Vibe.setPeriod(period);
 
   PRINTS("\nsender: "); PRINTS(sender);
   PRINT("\n_msgid: ", _msgid);
   PRINT("\ntrans_threshold (mG): ", transientThreshold);
   PRINT("\ntrans_debcntr: ", transientDuration);
+  PRINT("\nperiod: ", (long)period);
 }

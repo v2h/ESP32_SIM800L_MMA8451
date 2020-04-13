@@ -38,8 +38,8 @@ static const struct {
   const char * const z_accel      = "z-accel";
 } StringToPack;
 
-// Initialize static variables in class
-uint64_t LumaVibe::_bootCount = 0;
+// Initialize static (section attributed) variables in class
+uint64_t               LumaVibe::_bootCount = 0;
 LumaVibe::Parameters_t LumaVibe::_params    = {0};
 
 // Default Initializer
@@ -70,16 +70,15 @@ LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t *p) {
   PRINT("\nsleepTime_ms: ", (long)_params.sleepTime_ms);
   PRINT("\nthreshold_mG: ", (int)_params.transientThreshold_mG);
   PRINT("\nduration: ", _params.transientDuration);
+
   _mqtt.setServer(_params.mqttBroker, 1883);
   _accelBuffer.isBufferAllocated = false;
   _timers.sleepTimer = NULL;
-
   return ERROR_NONE;
 }
 
 //
 LumaVibe::ERROR LumaVibe::begin() {
-    PRINTS("\nFirst blood...I mean first boot");
     // Initialize accelerometer
     PRINTS("\nInitializing accelerometer");
     Wire.begin();
@@ -109,7 +108,7 @@ LumaVibe::ERROR LumaVibe::begin() {
         PRINTS("\nWoken up by timer");
         break;
       default:
-        PRINTS("\nWakeup was not caused by deep sleep: %d\n");
+        PRINT("\nWakeup was not caused by deep sleep, cause = ", (int)wakeupReason);
         break;
     }
   return ERROR_NONE;

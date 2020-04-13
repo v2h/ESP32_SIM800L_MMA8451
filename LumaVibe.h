@@ -119,12 +119,13 @@ class LumaVibe {
 
     void setTransientThreshold(uint16_t threshold_mG);
     void setTransientDuration(uint16_t duration);
+    void setPeriod(uint32_t period_s);
     void goToSleep(void);
     bool isFirstBoot();
 
   private: 
-    Parameters_t   _params;
     static RTC_DATA_ATTR Parameters_t _params; // stored in RTC memory
+    static RTC_DATA_ATTR uint64_t     _bootCount; // stored in RTC memory
     MMA8451Q       _accel;
     TinyGsm        _modem;
     TinyGsmClient  _client;
@@ -132,7 +133,6 @@ class LumaVibe {
     mpack_writer_t _writer;
     char           *_packBuffer;
 
-    static RTC_DATA_ATTR uint64_t _bootCount;
 
     struct {
       union {

@@ -16,6 +16,8 @@
     Serial.print(F("0x")); \
     Serial.print(v, HEX);  \
   } while (0)
+
+#define PRINTVAL(v) Serial.print(v)
 #else
 #define PRINTS(s)
 #define PRINT(s,v)
