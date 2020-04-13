@@ -62,7 +62,14 @@ LumaVibe::ERROR LumaVibe::init(LumaVibe::Parameters_t *p) {
   if (ERROR_NONE != enableTimer(&_timers.watchDogTimer, WATCHDOG_TIMER_NUMBER, _params.watchDogTime_ms, _params.watchDogISR)) {
     return ERROR_TIMER_NULL;
   }
-  memcpy(&_params, p, sizeof(Parameters_t));
+  _bootCount++; // Caution: when to increment bootCount??
+  PRINT("bootCount: ", (long)_bootCount);
+  if (isFirstBoot()) {
+    memcpy(&_params, p, sizeof(Parameters_t));
+  }
+  PRINT("\nsleepTime_ms: ", (long)_params.sleepTime_ms);
+  PRINT("\nthreshold_mG: ", (int)_params.transientThreshold_mG);
+  PRINT("\nduration: ", _params.transientDuration);
   _mqtt.setServer(_params.mqttBroker, 1883);
   _accelBuffer.isBufferAllocated = false;
   _timers.sleepTimer = NULL;
@@ -105,7 +112,6 @@ LumaVibe::ERROR LumaVibe::begin() {
         PRINTS("\nWakeup was not caused by deep sleep: %d\n");
         break;
     }
-  _bootCount++; // Caution: when to increment bootCount??
   return ERROR_NONE;
 }
 
