@@ -195,7 +195,9 @@ LumaVibe::ERROR LumaVibe::packData(uint32_t *bytesPacked) {
 LumaVibe::ERROR LumaVibe::publishData(uint32_t bytesToPublish, uint16_t bytesPerWrite) {
   PRINT("\nBytes to be published: ", bytesToPublish);
   do {
+    uint8_t count = 1;
     PRINTS("\nConnecting MQTT");
+    PRINT("..", count++);
     _mqtt.connect("sim800l", "user", "mqtt");
     PRINT("\nMQTT state: ", _mqtt.state()); // Should be 0
     delay(1000);
@@ -393,25 +395,26 @@ void LumaVibe::clearMeasurementData() {
 LumaVibe::ERROR LumaVibe::setupModem() {
   PRINTS("\nSetting up modem");
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
-  //_modem.restart();
   if (!_modem.restart())
     return ERROR_MODEM_RESTART_FAIL;
   String modemInfo = _modem.getModemInfo();
   PRINT("\nmodem info: ", modemInfo);
   dumpSimInfo();
-
+  keepAlive();
   PRINTS("\nwaiting for network...");
-  if (!_modem.waitForNetwork(240000L))
+  if (!_modem.waitForNetwork(30000L))
     if (!_modem.isNetworkConnected())
-      return ERROR_MODEM_NETWORK;
+      return ERROR_MODEM_NETWORK_NOT_CONNECTED;
   PRINTS("\nnetwork connected...");
-  PRINTS("\nconnecting to GPRS");
-  while (!_modem.isGprsConnected()) { // ATTENTION: WHILE LOOP!!
+  keepAlive();
+  PRINTS("\nconnecting to GPRS..");
+  do {
+    static uint8_t count = 0;
+    PRINT("retry..", count++);
     _modem.gprsConnect("", "", "");
     delay(1000);
-  }
+  } while (!_modem.isGprsConnected()); // ATTENTION: WHILE LOOP!!
   PRINTS("\nGPRS connected");
-  
   keepAlive();
   return ERROR_NONE;
 }

@@ -65,12 +65,12 @@ class LumaVibe {
       ERROR_TIMER_NULL         = 20,
       ERROR_NOT_ENOUGH_MEMORY  = 30,
       ERROR_MODEM_RESTART_FAIL = 40,
-      ERROR_MODEM_NETWORK      = 41,
-      ERROR_MODEM_GPRS         = 42,
-      ERROR_MQTT               = 43,
+      ERROR_MODEM_NETWORK_NOT_CONNECTED = 41,
+      ERROR_MODEM_GPRS_NOT_CONNECTED    = 42, // not used
+      ERROR_MQTT_NOT_CONNECTED = 43, // not used
       ERROR_PUBLISH_BEGIN_FAIL = 50,
       ERROR_PUBLISH_END_FAIL   = 51,
-      ERROR_SENSOR_INIT        = 100
+      ERROR_SENSOR_INIT        = 100 // not used
     };
 
     typedef struct {
