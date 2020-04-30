@@ -165,31 +165,35 @@ LumaVibe::ERROR LumaVibe::packData(uint32_t *bytesPacked) {
     return ERROR_NOT_ENOUGH_MEMORY;
   }
   PRINTS("\nPacking header");
-  mpack_writer_init(&_writer, _packBuffer, PACKER_CAPACITY);
-  mpack_start_map(&_writer, 10);
+  mpack_writer_t writer;
+  mpack_writer_init(&writer, _packBuffer, PACKER_CAPACITY);
+  mpack_start_map(&writer, 10 + 1);
   char timeStamp[21] = {0};
   getTimestampFromNetwork(timeStamp);
   // TODO: refactor this shit, from here..
-  mpack_write_cstr(&_writer, StringToPack.timestamp); 
-  mpack_write_cstr(&_writer, timeStamp);
-  mpack_write_cstr(&_writer, StringToPack.moduleID); 
-  mpack_write_cstr(&_writer, _params.moduleID);
-  mpack_write_cstr(&_writer, StringToPack.moduletype);
-  mpack_write_cstr(&_writer, _params.moduleType);
-  mpack_write_cstr(&_writer, StringToPack.msgtype);
-  mpack_write_u8(&_writer, _params.msgType);
-  mpack_write_cstr(&_writer, StringToPack.format);
-  mpack_write_cstr(&_writer, _params.format);
-  mpack_write_cstr(&_writer, StringToPack.freq);
-  mpack_write_u16(&_writer, _params.frequency);
-  mpack_write_cstr(&_writer, StringToPack.numberOfMeas);
-  mpack_write_u16(&_writer, _params.samplesPerMeasurement);
+  mpack_write_cstr(&writer, StringToPack.timestamp); 
+  mpack_write_cstr(&writer, timeStamp);
+  mpack_write_cstr(&writer, StringToPack.moduleID); 
+  mpack_write_cstr(&writer, _params.moduleID);
+  mpack_write_cstr(&writer, StringToPack.moduletype);
+  mpack_write_cstr(&writer, _params.moduleType);
+  mpack_write_cstr(&writer, StringToPack.msgtype);
+  mpack_write_u8(&writer, _params.msgType);
+  mpack_write_cstr(&writer, StringToPack.format);
+  mpack_write_cstr(&writer, _params.format);
+  mpack_write_cstr(&writer, StringToPack.freq);
+  mpack_write_u16(&writer, _params.frequency);
+  mpack_write_cstr(&writer, StringToPack.numberOfMeas);
+  mpack_write_u16(&writer, _params.samplesPerMeasurement);
+  mpack_write_cstr(&writer, "error");
+  mpack_write_cstr(&writer, str(ERROR_NONE));
+
   // ..to here
   PRINTS("\nPacking array");
   const char *entries[] = {StringToPack.x_accel, StringToPack.y_accel, StringToPack.z_accel};
-  packArray(&_writer, entries, _params.samplesPerMeasurement);
-  *bytesPacked = mpack_writer_buffer_used(&_writer);
   mpack_finish_map(&_writer);
+  packArray(&writer, entries, _params.samplesPerMeasurement);
+  *bytesPacked = mpack_writer_buffer_used(&writer);
 
   clearMeasurementData();
   keepAlive();

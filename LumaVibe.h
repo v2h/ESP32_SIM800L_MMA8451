@@ -136,7 +136,6 @@ class LumaVibe {
     TinyGsm        _modem;
     TinyGsmClient  _client;
     PubSubClient   _mqtt;
-    mpack_writer_t _writer;
     char           *_packBuffer;
     CRGB           _led[NUM_LEDS];
 
