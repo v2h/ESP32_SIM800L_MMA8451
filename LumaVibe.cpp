@@ -373,6 +373,7 @@ void LumaVibe::setLED(CRGB::HTMLColorCode color) {
 //
 void LumaVibe::clearLED() {
   FastLED.clear();
+  FastLED.show(); // This puts clear() into effect
 }
 
 void LumaVibe::flashLED(CRGB::HTMLColorCode color, uint16_t duration_ms, uint8_t numberOfTimes, bool retainColor) {
