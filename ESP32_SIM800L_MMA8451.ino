@@ -43,7 +43,7 @@ void setup() {
   setModemPins();
   PRINTS("\nHello there\n");
 
-  LumaVibe::Parameters_t params = {
+  const LumaVibe::Parameters_t params = {
     "LV020_000000B",            // moduleID
     "LumaVibe 2.0",             // moduleType
     "mastap.net",               // mqttBroker

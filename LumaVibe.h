@@ -104,7 +104,7 @@ class LumaVibe {
     bool timerInterruptFlag;
 
     LumaVibe();
-    ERROR init(Parameters_t *p);
+    ERROR init(const Parameters_t *p);
     ERROR begin();
     ERROR measure();
     ERROR packData(uint32_t *bytesPacked);
