@@ -356,6 +356,33 @@ bool LumaVibe::isFirstBoot() {
   return (1 == _bootCount); // CAUTION: 1 or 0?
 }
 
+//
+void LumaVibe::setLED(CRGB::HTMLColorCode color) {
+  _led[0] = color;
+  FastLED.show();
+}
+
+//
+void LumaVibe::clearLED() {
+  FastLED.clear();
+}
+
+void LumaVibe::flashLED(CRGB::HTMLColorCode color, uint16_t duration_ms, uint8_t numberOfTimes, bool retainColor) {
+  if (0 != duration_ms && 0 != numberOfTimes) {
+    while(numberOfTimes) {
+      setLED(color);
+      FastLED.delay(duration_ms);
+      clearLED();
+      FastLED.delay(duration_ms);
+      numberOfTimes--;
+    }
+  }
+  if (retainColor) {
+    _led[0] = color;
+    FastLED.show();
+  }
+}
+
 //////////////////////////////////////////////////////////////////
 ///////////////////////* Private methods *///////////////////////
 /////////////////////////////////////////////////////////////////

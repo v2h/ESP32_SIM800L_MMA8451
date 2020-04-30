@@ -13,6 +13,10 @@
 #include "PubSubClient.h"  // https://github.com/knolleary/pubsubclient
 #include "mpack.h"         // https://ludocode.github.io/mpack/
 
+#include "FastLED.h"
+#define NUM_LEDS 1
+#define LED_PIN 2
+
 // TODO: move this thing somewhere else
 #ifdef TTGO
 #define IP5306_ADDR          0x75
@@ -121,6 +125,9 @@ class LumaVibe {
     void setPeriod(uint32_t period_s);
     void goToSleep(void);
     bool isFirstBoot();
+    void setLED(CRGB::HTMLColorCode color);
+    void clearLED();
+    void flashLED(CRGB::HTMLColorCode color, uint16_t duration_ms, uint8_t numberOfTimes, bool retainColor);
 
   private: 
     static RTC_DATA_ATTR Parameters_t _params; // stored in RTC memory
@@ -131,7 +138,7 @@ class LumaVibe {
     PubSubClient   _mqtt;
     mpack_writer_t _writer;
     char           *_packBuffer;
-
+    CRGB           _led[NUM_LEDS];
 
     struct {
       union {
