@@ -17,14 +17,13 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 #define SLEEP_TIMER_NUMBER    0
 #define PACKER_CAPACITY       40000
 #define BYTES_PER_WRITE       512
+#define mG_PER_COUNT 63
 
 #define SerialAT  Serial1
 #define SerialUSB Serial
 
 #define MODEM_TX 27
 #define MODEM_RX 26
-
-#define mG_PER_COUNT 63
 
 static const struct {
   const char * const timestamp    = "timestamp";
@@ -39,7 +38,7 @@ static const struct {
   const char * const z_accel      = "z-accel";
 } StringToPack;
 
-// Initialize static (section attributed) variables in class
+// Initialize static (section attributed) member variables
 uint64_t               LumaVibe::_bootCount = 0;
 LumaVibe::Parameters_t LumaVibe::_params    = {0};
 uint8_t                LumaVibe::_errorStream[MAX_ERROR_COUNT] = {0};
@@ -149,14 +148,6 @@ LumaVibe::ERROR LumaVibe::measure() {
 
 // 
 LumaVibe::ERROR LumaVibe::packData(uint32_t *bytesPacked) {
-/*   PRINTS("\nPacking data...");
-  if (!_modem.isGprsConnected()) {
-    PRINTS("\nGPRS connecting.."); // For getting network time
-    if (!_modem.gprsConnect("", "", ""))
-      return ERROR_MODEM_GPRS;
-  }
-  PRINTS("\nGPRS connected"); */
-
   ERROR err = setupModem();
   if (ERROR_NONE != err) {
     return err;
@@ -187,15 +178,17 @@ LumaVibe::ERROR LumaVibe::packData(uint32_t *bytesPacked) {
   mpack_write_u16(&writer, _params.frequency);
   mpack_write_cstr(&writer, StringToPack.numberOfMeas);
   mpack_write_u16(&writer, _params.samplesPerMeasurement);
-  mpack_write_cstr(&writer, "error");
-  mpack_write_cstr(&writer, str(ERROR_NONE));
 
   // ..to here
   PRINTS("\nPacking array");
   const char *entries[] = {StringToPack.x_accel, StringToPack.y_accel, StringToPack.z_accel};
-  mpack_finish_map(&_writer);
   packArray(&writer, entries, _params.samplesPerMeasurement);
   *bytesPacked = mpack_writer_buffer_used(&writer);
+  mpack_finish_map(&writer);
+  if (mpack_ok != mpack_writer_destroy(&writer)) {
+    PRINTS("\nError destroying writer");
+    return ERROR_PACKING_NOT_FINISHED;
+  }
 
   clearMeasurementData();
   keepAlive();
@@ -275,6 +268,7 @@ void LumaVibe::logError(ERROR error, uint16_t line) {
   char errorString[40];
   sprintf(errorString, "\nError: %u at line: %u\n", error, line);
   PRINTS(errorString);
+
   while (1);
 }
 

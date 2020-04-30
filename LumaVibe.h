@@ -17,6 +17,8 @@
 #define NUM_LEDS 1
 #define LED_PIN 2
 
+#define MAX_ERROR_COUNT 20
+
 // TODO: move this thing somewhere else
 #ifdef TTGO
 #define IP5306_ADDR          0x75
@@ -34,6 +36,7 @@ bool setPowerBoostKeepOn(bool en)
 }
 
 // https://electronics.stackexchange.com/questions/287418/sim800-pwrkey-automatic-start
+// https://github.com/Xinyuan-LilyGO/LilyGo-T-Call-SIM800L/blob/master/datasheet/SIM800_Hardware%20Design_V1.08.pdf
 #define MODEM_RST      5  // Active low (also low after modem.sleepEnable() is called)
 #define MODEM_PWKEY    4 // [Pulled up] drive down to turn on the modem
 #define MODEM_POWER_ON 23 // [Pulled-up] active high
@@ -63,18 +66,20 @@ void hardResetModem() {
 class LumaVibe {
   public: 
     enum ERROR {
-      ERROR_NONE               = 0,
-      ERROR_TIME_ZERO          = 10,
-      ERROR_FREQUENCY_ZERO     = 11,
-      ERROR_TIMER_NULL         = 20,
-      ERROR_NOT_ENOUGH_MEMORY  = 30,
-      ERROR_MODEM_RESTART_FAIL = 40,
-      ERROR_MODEM_NETWORK_NOT_CONNECTED = 41,
-      ERROR_MODEM_GPRS_NOT_CONNECTED    = 42, // not used
-      ERROR_MQTT_NOT_CONNECTED = 43, // not used
-      ERROR_PUBLISH_BEGIN_FAIL = 50,
-      ERROR_PUBLISH_END_FAIL   = 51,
-      ERROR_SENSOR_INIT        = 100 // not used
+      ERROR_NONE = 0,
+      ERROR_TIME_ZERO,
+      ERROR_FREQUENCY_ZERO,
+      ERROR_TIMER_NULL,
+      ERROR_NOT_ENOUGH_MEMORY,
+      ERROR_MODEM_RESTART_FAIL,
+      ERROR_MODEM_NETWORK_NOT_CONNECTED,
+      ERROR_MODEM_GPRS_NOT_CONNECTED, // not used
+      ERROR_MQTT_NOT_CONNECTED, // not used
+      ERROR_PACKING_NOT_FINISHED,
+      ERROR_PUBLISH_BEGIN_FAIL,
+      ERROR_PUBLISH_END_FAIL,
+      ERROR_SENSOR_INIT, // not used
+      ERROR_MAX
     };
 
     typedef struct {
