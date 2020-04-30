@@ -6,6 +6,7 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 
 #include "LumaVibe.h"
 #include "esp_attr.h"
+#include <WiFi.h>
 #include <stdlib.h> // For malloc()
 
 #define DEBUG_MACROS_ENABLE 1
@@ -321,6 +322,7 @@ void LumaVibe::setPeriod(uint32_t period_s) {
 }
 
 //
+// TODO: Handle errors in here
 void LumaVibe::goToSleep(void) {
   PRINTS("\nGoing to sleep..");
   PRINT("\nSleep time: ", (long)_params.sleepTime_ms);
@@ -330,6 +332,12 @@ void LumaVibe::goToSleep(void) {
   }
   if (_modem.sleepEnable()) {
     PRINTS("\nModem put to sleep");
+  }
+  if (btStop()) {
+    PRINTS("\nBluetooth stopped"); 
+  }
+  if (WiFi.mode(WIFI_OFF)) {
+    PRINTS("\nWifi off");
   }
 #ifdef TTGO
   if (setPowerBoostKeepOn(false)) {
