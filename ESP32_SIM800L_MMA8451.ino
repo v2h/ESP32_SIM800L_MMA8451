@@ -91,6 +91,7 @@ void loop() {
     g_Vibe.accelInterruptFlag = false;
     g_Vibe.timerInterruptFlag = false;
     g_Vibe.enableAccelInterrupt();
+    g_Vibe.setLED(CRGB::DarkBlue);
     g_Vibe.goToSleep();
   }
   if (g_Vibe.accelInterruptFlag || g_Vibe.timerInterruptFlag) {
@@ -102,27 +103,35 @@ void loop() {
 
     LumaVibe::ERROR err;
 
+    g_Vibe.setLED(CRGB::Purple);
     err = g_Vibe.measure();
     if (LumaVibe::ERROR_NONE != err)
       g_Vibe.LOG_ERROR(err);
     delay(10000);
     
+    g_Vibe.setLED(CRGB::Aqua);
     uint32_t packedData;
     err = g_Vibe.packData(&packedData);
     if (LumaVibe::ERROR_NONE != err) 
       g_Vibe.LOG_ERROR(err);
     PRINT("\nPacked Bytes: ", packedData);
 
+    g_Vibe.setLED(CRGB::Green);
     err = g_Vibe.publishData(packedData, 512);
     if (LumaVibe::ERROR_NONE != err)
       g_Vibe.LOG_ERROR(err);
     
     g_Vibe.getCommandsFromServer(mqttCallback);
+
+    g_Vibe.flashLED(CRGB::Green, 400, 5, false);
   
     g_Vibe.clearAccelInterrupt();
     g_Vibe.accelInterruptFlag = false;
     g_Vibe.timerInterruptFlag = false;
     g_Vibe.enableAccelInterrupt();
+    g_Vibe.setLED(CRGB::DarkBlue);
+    FastLED.delay(1000);
+    g_Vibe.clearLED();
     g_Vibe.goToSleep();
   }
 }
