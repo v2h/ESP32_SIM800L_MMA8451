@@ -7,7 +7,7 @@
 
 #include "esp_attr.h"
 
-#define LUMAVIBE_ENABLE_HANDLING_ENABLE 1
+#define LUMAVIBE_ENABLE_ERROR_LOGGING 1
 #define TTGO
 #include "LumaVibe.h"
 
