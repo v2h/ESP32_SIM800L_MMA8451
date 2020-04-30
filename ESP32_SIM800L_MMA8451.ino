@@ -15,7 +15,6 @@
 #define DEBUG_MACROS_ENABLE 1
 #include "debug_macros.h"
 
-
 LumaVibe g_Vibe;
 
 //
@@ -41,8 +40,11 @@ void setup() {
   SerialUSB.begin(115200);
   setPowerBoostKeepOn(true);
   setModemPins();
+  hardResetModem();
   PRINTS("\nHello there\n");
 
+  // For the ledPin, change it in LumaVibe.h (#define LED_PIN 2)
+  // https://www.reddit.com/r/FastLED/comments/e4w6xh/not_usable_in_a_constant_expression/
   const LumaVibe::Parameters_t params = {
     "LV020_000000B",            // moduleID
     "LumaVibe 2.0",             // moduleType
@@ -59,7 +61,7 @@ void setup() {
     60000,                      // watchDogTime_ms
     300,                        // transientThreshold in mG
     30,                         // transientDuration
-    15,                         // accelInterruptPin
+    25,                         // accelInterruptPin
     &watchDogISR,
     &sleepTimerISR,
     &accelerometerISR
@@ -68,21 +70,19 @@ void setup() {
   LumaVibe::ERROR err; 
   err = g_Vibe.init(&params);
   if (LumaVibe::ERROR_NONE != err)
-    g_Vibe.HANDLE_ERROR(err);
-
-/*   err = g_Vibe.setupModem();
-  if(LumaVibe::ERROR_NONE != err)
-    g_Vibe.HANDLE_ERROR(err); */
+    g_Vibe.LOG_ERROR(err);
+  g_Vibe.setLED(CRGB::Yellow);
 
   err = g_Vibe.begin();
   if (LumaVibe::ERROR_NONE != err)
-  
     g_Vibe.LOG_ERROR(err);
+
   PRINTS("\nEnd of setup()\n");
 }
 
 //
 void loop() {
+  PRINTS("loop");
   if (g_Vibe.isFirstBoot()) {
     PRINTS("\nFirst blood");
     g_Vibe.detachAccelInterrupt();
@@ -96,8 +96,6 @@ void loop() {
   }
   if (g_Vibe.accelInterruptFlag || g_Vibe.timerInterruptFlag) {
     g_Vibe.detachAccelInterrupt();
-    PRINT("\nINT PINT: ", digitalRead(15));
-    PRINTS("\nlooping");
     PRINT("\naccelInterruptFlag: ", g_Vibe.accelInterruptFlag);
     PRINT("\ntimerInterruptFlag: ", g_Vibe.timerInterruptFlag);
 
