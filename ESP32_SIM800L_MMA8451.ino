@@ -76,8 +76,8 @@ void setup() {
 
   err = g_Vibe.begin();
   if (LumaVibe::ERROR_NONE != err)
-    g_Vibe.HANDLE_ERROR(err);
   
+    g_Vibe.LOG_ERROR(err);
   PRINTS("\nEnd of setup()\n");
 }
 
@@ -104,18 +104,18 @@ void loop() {
 
     err = g_Vibe.measure();
     if (LumaVibe::ERROR_NONE != err)
-      g_Vibe.HANDLE_ERROR(err);
+      g_Vibe.LOG_ERROR(err);
     delay(10000);
     
     uint32_t packedData;
     err = g_Vibe.packData(&packedData);
     if (LumaVibe::ERROR_NONE != err) 
-      g_Vibe.HANDLE_ERROR(err);
+      g_Vibe.LOG_ERROR(err);
     PRINT("\nPacked Bytes: ", packedData);
 
     err = g_Vibe.publishData(packedData, 512);
-    if (LumaVibe::ERROR_NONE != err) 
-      g_Vibe.HANDLE_ERROR(err);
+    if (LumaVibe::ERROR_NONE != err)
+      g_Vibe.LOG_ERROR(err);
     
     g_Vibe.getCommandsFromServer(mqttCallback);
   

@@ -56,8 +56,8 @@ void hardResetModem() {
 #endif // TTGO
 
 // Marcro for handdling errors
-#if LUMAVIBE_ENABLE_HANDLING_ENABLE
-#define HANDLE_ERROR(e) handleError(e, __LINE__)
+#if LUMAVIBE_ENABLE_ERROR_LOGGING
+#define LOG_ERROR(e) logError(e, __LINE__)
 #endif // LUMAVIBE_ENABLE_HANDLING_ENABLE
 
 class LumaVibe {
@@ -111,7 +111,7 @@ class LumaVibe {
     ERROR publishData(uint32_t bytesToPublish, uint16_t bytesPerWrite);
     void  getCommandsFromServer(MQTT_CALLBACK_SIGNATURE);
     void  restart();
-    void  handleError(ERROR error, uint16_t line);
+    void  logError(ERROR error, uint16_t line);
     void  readSingle(int16_t *xi, int16_t *yi, int16_t *zi);
     void  detachAccelInterrupt();
     void  clearAccelInterrupt();
