@@ -75,6 +75,10 @@ LumaVibe::ERROR LumaVibe::init(const LumaVibe::Parameters_t *p) {
   _mqtt.setServer(_params.mqttBroker, 1883);
   _accelBuffer.isBufferAllocated = false;
   _timers.sleepTimer = NULL;
+
+  FastLED.addLeds<NEOPIXEL, LED_PIN>(_led, NUM_LEDS); // CAUTION
+  FastLED.setBrightness(30);
+  
   return ERROR_NONE;
 }
 
