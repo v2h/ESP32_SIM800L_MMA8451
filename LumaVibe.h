@@ -132,6 +132,8 @@ class LumaVibe {
   private: 
     static RTC_DATA_ATTR Parameters_t _params; // stored in RTC memory
     static RTC_DATA_ATTR uint64_t     _bootCount; // stored in RTC memory
+    static RTC_DATA_ATTR uint8_t      _errorStream[MAX_ERROR_COUNT];
+    static RTC_DATA_ATTR uint8_t      _errorStreamWriter;
     MMA8451Q       _accel;
     TinyGsm        _modem;
     TinyGsmClient  _client;
