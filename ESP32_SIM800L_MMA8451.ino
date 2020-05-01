@@ -26,7 +26,7 @@ void IRAM_ATTR accelerometerISR() {
 //
 void IRAM_ATTR watchDogISR() {
   PRINTS("\nRestarting\n");
-  hardResetModem();
+  g_Vibe.hardResetModem();
   g_Vibe.restart();
 }
 
@@ -38,12 +38,12 @@ void IRAM_ATTR sleepTimerISR() {
 //
 void setup() {
   SerialUSB.begin(115200);
-  setPowerBoostKeepOn(true);
-  setModemPins();
-  hardResetModem();
+  g_Vibe.setPowerBoostKeepOn(true);
+  g_Vibe.setModemPins();
+  g_Vibe.hardResetModem();
   PRINTS("\nHello there\n");
 
-  // For the ledPin, change it in LumaVibe.h (#define LED_PIN 2)
+  // For pin defines, change them in LumaVibe_globals.h
   // https://www.reddit.com/r/FastLED/comments/e4w6xh/not_usable_in_a_constant_expression/
   const LumaVibe::Parameters_t params = {
     "LV020_000000B",            // moduleID

@@ -45,6 +45,44 @@ LumaVibe::LumaVibe() :
   _mqtt(_client) 
   {}
 
+#ifdef TTGO
+// https://electronics.stackexchange.com/questions/287418/sim800-pwrkey-automatic-start
+// https://github.com/Xinyuan-LilyGO/LilyGo-T-Call-SIM800L/blob/master/datasheet/SIM800_Hardware%20Design_V1.08.pdf
+#define IP5306_ADDR          0x75
+#define IP5306_REG_SYS_CTL0  0x00
+bool LumaVibe::setPowerBoostKeepOn(bool en)
+{
+  Wire.beginTransmission(IP5306_ADDR);
+  Wire.write(IP5306_REG_SYS_CTL0);
+  if (en) {
+    Wire.write(0x37); // Set bit1: 1 enable 0 disable boost keep on
+  } else {
+    Wire.write(0x35); // 0x37 is default reg value
+  }
+  return Wire.endTransmission() == 0;
+}
+
+void LumaVibe::hardResetModem() {
+  digitalWrite(MODEM_RST, LOW);
+  delay(200); // must be more than 105ms
+  digitalWrite(MODEM_RST, HIGH);
+}
+
+void LumaVibe::disableModem() {
+  digitalWrite(MODEM_RST, LOW);
+}
+
+void LumaVibe::setModemPins() { // Private
+  pinMode(MODEM_PWKEY, OUTPUT);
+  pinMode(MODEM_RST, OUTPUT);
+  pinMode(MODEM_POWER_ON, OUTPUT);
+
+  digitalWrite(MODEM_PWKEY, LOW);
+  digitalWrite(MODEM_RST, HIGH);
+  digitalWrite(MODEM_POWER_ON, HIGH);
+}
+#endif // TTGO
+
 // Copy parameters + initialize watchdog timer
 LumaVibe::ERROR LumaVibe::init(const LumaVibe::Parameters_t *p) {
   if (0 == p->sleepTime_ms || 0 == p->watchDogTime_ms) {

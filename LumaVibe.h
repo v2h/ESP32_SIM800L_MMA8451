@@ -6,6 +6,8 @@
 #include "MMA845XQ_Vibe.h"
 #include "esp32-hal-timer.h"
 
+#define TTGO
+
 #define TINY_GSM_MODEM_SIM800
 #define TINY_GSM_USE_GPRS     true
 #define TINY_GSM_USE_WIFI     false
@@ -17,46 +19,6 @@
 
 #define ERROR_STREAM_SIZE 20
 #define MAX_ERROR_COUNT (ERROR_STREAM_SIZE - 4)
-
-// TODO: move this thing somewhere else
-#ifdef TTGO
-#define IP5306_ADDR          0x75
-#define IP5306_REG_SYS_CTL0  0x00
-bool setPowerBoostKeepOn(bool en)
-{
-  Wire.beginTransmission(IP5306_ADDR);
-  Wire.write(IP5306_REG_SYS_CTL0);
-  if (en) {
-    Wire.write(0x37); // Set bit1: 1 enable 0 disable boost keep on
-  } else {
-    Wire.write(0x35); // 0x37 is default reg value
-  }
-  return Wire.endTransmission() == 0;
-}
-
-// https://electronics.stackexchange.com/questions/287418/sim800-pwrkey-automatic-start
-// https://github.com/Xinyuan-LilyGO/LilyGo-T-Call-SIM800L/blob/master/datasheet/SIM800_Hardware%20Design_V1.08.pdf
-// Set-up modem reset, enable, power pins
-void setModemPins() {
-  pinMode(MODEM_PWKEY, OUTPUT);
-  pinMode(MODEM_RST, OUTPUT);
-  pinMode(MODEM_POWER_ON, OUTPUT);
-
-  digitalWrite(MODEM_PWKEY, LOW);
-  digitalWrite(MODEM_RST, HIGH);
-  digitalWrite(MODEM_POWER_ON, HIGH);
-}
-
-void hardResetModem() {
-  digitalWrite(MODEM_RST, LOW);
-  delay(200); // must be more than 105ms
-  digitalWrite(MODEM_RST, HIGH);
-}
-
-void disableModem() {
-  digitalWrite(MODEM_RST, LOW);
-}
-#endif // TTGO
 
 // Marcro for handdling errors
 #if LUMAVIBE_ENABLE_ERROR_LOGGING
@@ -109,6 +71,12 @@ class LumaVibe {
     bool timerInterruptFlag;
 
     LumaVibe();
+#ifdef TTGO
+    bool setPowerBoostKeepOn(bool en);
+    void setModemPins();
+    void hardResetModem();
+    void disableModem();
+#endif
     ERROR init(const Parameters_t *p);
     ERROR begin();
     ERROR measure();
