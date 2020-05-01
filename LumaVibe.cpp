@@ -41,7 +41,7 @@ static const struct {
 // Initialize static (section attributed) member variables
 uint64_t               LumaVibe::_bootCount = 0;
 LumaVibe::Parameters_t LumaVibe::_params    = {0};
-uint8_t                LumaVibe::_errorStream[MAX_ERROR_COUNT] = {0};
+uint8_t                LumaVibe::_errorStream[ERROR_STREAM_SIZE] = {0};
 uint8_t                LumaVibe::_errorStreamWriter = 0;
 
 // Default Initializer

@@ -17,7 +17,8 @@
 #define NUM_LEDS 1
 #define LED_PIN 2
 
-#define MAX_ERROR_COUNT 20
+#define ERROR_STREAM_SIZE 20
+#define MAX_ERROR_COUNT (ERROR_STREAM_SIZE - 4)
 
 // TODO: move this thing somewhere else
 #ifdef TTGO
