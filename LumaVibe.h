@@ -88,6 +88,7 @@ class LumaVibe {
       char            moduleType[20];
       char            mqttBroker[20];
       char            publishDataTopic[40];
+      char            publishErrorTopic[40];
       char            subscribeTopic[40];
       char            format[10]; // always set to "Int16" for now, remove completely later? any use?
       uint8_t         msgType;
@@ -118,6 +119,11 @@ class LumaVibe {
     void  getCommandsFromServer(MQTT_CALLBACK_SIGNATURE);
     void  restart();
     void  logError(ERROR error, uint16_t line);
+    uint8_t countNetworkError(void);
+    ERROR packError(uint32_t *bytesPacked);
+    ERROR publishError(uint32_t bytesToPublish, uint16_t bytesPerWrite);
+    void  clearError(void);
+    uint8_t countError(void);
     void  readSingle(int16_t *xi, int16_t *yi, int16_t *zi);
     void  detachAccelInterrupt();
     void  clearAccelInterrupt();

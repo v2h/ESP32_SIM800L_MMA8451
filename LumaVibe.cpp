@@ -214,11 +214,71 @@ void LumaVibe::restart() {
 
 // 
 void LumaVibe::logError(ERROR error, uint16_t line) {
+  _errorStream[_errorStreamWriter++] = (uint8_t)error;
+
   char errorString[40];
   sprintf(errorString, "\nError: %u at line: %u\n", error, line);
   PRINTS(errorString);
 
   while (1);
+}
+
+
+//
+uint8_t LumaVibe::countNetworkError(void) {
+  uint8_t count = 0;
+  for (uint8_t i = 0; i < _errorStreamWriter; i++) {
+    if ((uint8_t)ERROR_MODEM_NETWORK_NOT_CONNECTED == _errorStream[i] ||
+        (uint8_t)ERROR_MQTT_NOT_CONNECTED == _errorStream[i] ||
+        (uint8_t)ERROR_MODEM_GPRS_NOT_CONNECTED == _errorStream[i]) {
+      count++;
+    }
+  }
+  return count;
+}
+
+//
+LumaVibe::ERROR LumaVibe::packError(uint32_t *bytesPacked) {
+  // CAUTION: setupModem() not called (should've been called in packData())
+  // Think of a better flow
+  _packBuffer = (char *)malloc(ERROR_PACKER_CAPACITY);
+  if (NULL == _packBuffer) {
+    return ERROR_NOT_ENOUGH_MEMORY;
+  }
+  PRINTS("\nPacking error header");
+  mpack_writer_t writer;
+  mpack_writer_init(&writer, _packBuffer, ERROR_PACKER_CAPACITY);
+  mpack_start_map(&writer, 2);
+  mpack_write_cstr(&writer, StringToPack.moduleID); 
+  mpack_write_cstr(&writer, _params.moduleID);
+  mpack_write_cstr(&writer, "Error");
+  mpack_write_tag(&writer, mpack_tag_make_array(_errorStreamWriter));
+  for (uint8_t i = 0; i < _errorStreamWriter; i++) {
+    mpack_write_u8(&writer, _errorStream[i]);
+  }
+  *bytesPacked = mpack_writer_buffer_used(&writer);
+  if (mpack_ok != mpack_writer_destroy(&writer)) {
+    PRINTS("\nError destroying writer");
+    return ERROR_PACKING_NOT_FINISHED;
+  }
+  keepAlive();
+  return ERROR_NONE;
+}
+
+//
+LumaVibe::ERROR LumaVibe::publishError(uint32_t bytesToPublish, uint16_t bytesPerWrite) {
+  return LumaVibe::publish(_params.publishErrorTopic, bytesToPublish, bytesPerWrite);
+}
+
+//
+uint8_t LumaVibe::countError(void) {
+  return _errorStreamWriter;
+}
+
+//
+void LumaVibe::clearError(void) {
+  memset(_errorStream, 0, ERROR_STREAM_SIZE);
+  _errorStreamWriter = 0;
 }
 
 //
