@@ -146,7 +146,7 @@ LumaVibe::ERROR LumaVibe::packData(uint32_t *bytesPacked) {
   PRINTS("\nPacking header");
   mpack_writer_t writer;
   mpack_writer_init(&writer, _packBuffer, PACKER_CAPACITY);
-  mpack_start_map(&writer, 10 + 1);
+  mpack_start_map(&writer, 10);
   char timeStamp[21] = {0};
   getTimestampFromNetwork(timeStamp);
   // TODO: refactor this shit, from here..
