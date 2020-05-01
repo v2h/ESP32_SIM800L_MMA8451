@@ -16,6 +16,7 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 #define WATCHDOG_TIMER_NUMBER 1
 #define SLEEP_TIMER_NUMBER    0
 #define PACKER_CAPACITY       40000
+#define ERROR_PACKER_CAPACITY 1000
 #define BYTES_PER_WRITE       512
 #define mG_PER_COUNT 63
 
