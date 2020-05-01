@@ -49,7 +49,8 @@ void setup() {
     "LV020_000000B",            // moduleID
     "LumaVibe 2.0",             // moduleType
     "mastap.net",               // mqttBroker
-    "ngd/demo/HSRW_Balcony/data",    // publishTopic
+    "ngd/demo/HSRW_Balcony/data",    // publishDataTopic
+    "ngd/demo/HSRW_Balcony/error", // publishErrorTopic
     "ngd/demo/HSRW_Balcony/command", // subscribeTopic
     "int16",                    // format
     2,                          // msgType
@@ -120,6 +121,33 @@ void loop() {
       g_Vibe.LOG_ERROR(err);
     
     g_Vibe.getCommandsFromServer(mqttCallback);
+    // Handle errors here
+    if (0 != g_Vibe.countError()) {
+      PRINTS("\nThere is error");
+      if (g_Vibe.countNetworkError() >= 6) {
+        PRINTS("\nThere is network error");
+        ; // TODO: emergency ota
+      }
+      else if (g_Vibe.countError() >= MAX_ERROR_COUNT) {
+        PRINTS("\nToo many errors");
+        ;// TODO: emergency ota
+      }
+      else {
+        packedData = 0;
+        PRINTS("\nPacking up error");
+        err = g_Vibe.packError(&packedData);
+        if (LumaVibe::ERROR_NONE != err) {
+          g_Vibe.LOG_ERROR(err);
+        }
+        err = g_Vibe.publishError(packedData, packedData);
+        if (LumaVibe::ERROR_NONE != err) {
+          g_Vibe.LOG_ERROR(err);
+        } else {
+          g_Vibe.clearError();
+          PRINTS("\nErrors cleared");
+        }
+      }
+    }
 
     g_Vibe.flashLED(CRGB::Green, 400, 5, false);
   
