@@ -146,4 +146,9 @@ class LumaVibe {
     ERROR publish(char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite);
 };
 
+// Must be first defined in the main file
+// Declared with 'extern' so other files can use..
+// ..whenever this header is included
+extern LumaVibe g_Vibe;
+
 #endif //LUMAVIBE_H
