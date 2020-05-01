@@ -183,44 +183,7 @@ LumaVibe::ERROR LumaVibe::packData(uint32_t *bytesPacked) {
 
 //
 LumaVibe::ERROR LumaVibe::publishData(uint32_t bytesToPublish, uint16_t bytesPerWrite) {
-  PRINT("\nBytes to be published: ", bytesToPublish);
-  do {
-    uint8_t count = 1;
-    PRINTS("\nConnecting MQTT");
-    PRINT("..", count++);
-    _mqtt.connect("sim800l", "user", "mqtt");
-    PRINT("\nMQTT state: ", _mqtt.state()); // Should be 0
-    delay(1000);
-  } while (!_mqtt.connected());
-  if(!_mqtt.beginPublish(_params.publishTopic, bytesToPublish, false)) {
-    return ERROR_PUBLISH_BEGIN_FAIL;
-  }
-  keepAlive();
-  PRINTS("\nPublishing...");
-  PRINT("\nBytes Total: ", bytesToPublish);
-  uint8_t *pointerToBuffer = (uint8_t *)_packBuffer;
-  while (bytesToPublish) {
-    uint16_t bytesToWrite = (bytesToPublish > bytesToPublish % bytesPerWrite ? bytesPerWrite : bytesToPublish % bytesPerWrite);
-    uint16_t bytesWritten = _mqtt.write(pointerToBuffer, bytesToWrite);
-    bytesToPublish -= bytesWritten;
-    pointerToBuffer += bytesWritten;
-    _mqtt.loop();
-    yield();
-    PRINT("\nBytes left: ", bytesToPublish);
-    while (MQTT_CONNECTED != _mqtt.state()) {
-      PRINTS("\nReconnecting MQTT");
-      _mqtt.connect("sim800l", "user", "mqtt");
-    }
-  }
-  if (!_mqtt.endPublish()) {
-    return ERROR_PUBLISH_END_FAIL;
-  }
-
-  free(_packBuffer);
-  _packBuffer = NULL;
-  clearMeasurementData();
-  PRINTS("\nPublishing done");
-  return ERROR_NONE;
+  return LumaVibe::publish(_params.publishDataTopic, bytesToPublish, bytesPerWrite);
 }
 
 //
@@ -497,4 +460,46 @@ void LumaVibe::packArray(mpack_writer_t *writer, const char *entryNames[3], cons
       mpack_write_i16(writer, _accelBuffer.data[j].v[i]);
     }
   }
+}
+
+// 
+LumaVibe::ERROR LumaVibe::publish(char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite) {
+  PRINT("\nBytes to be published: ", bytesToPublish);
+  do {
+    uint8_t count = 1;
+    PRINTS("\nConnecting MQTT");
+    PRINT("..", count++);
+    _mqtt.connect("sim800l", "user", "mqtt");
+    PRINT("\nMQTT state: ", _mqtt.state()); // Should be 0
+    delay(1000);
+  } while (!_mqtt.connected());
+  if(!_mqtt.beginPublish(publishTopic, bytesToPublish, false)) {
+    return ERROR_PUBLISH_BEGIN_FAIL;
+  }
+  keepAlive();
+  PRINTS("\nPublishing...");
+  PRINT("\nBytes Total: ", bytesToPublish);
+  uint8_t *pointerToBuffer = (uint8_t *)_packBuffer;
+  while (bytesToPublish) {
+    uint16_t bytesToWrite = (bytesToPublish > bytesToPublish % bytesPerWrite ? bytesPerWrite : bytesToPublish % bytesPerWrite);
+    uint16_t bytesWritten = _mqtt.write(pointerToBuffer, bytesToWrite);
+    bytesToPublish -= bytesWritten;
+    pointerToBuffer += bytesWritten;
+    _mqtt.loop();
+    yield();
+    PRINT("\nBytes left: ", bytesToPublish);
+    while (MQTT_CONNECTED != _mqtt.state()) {
+      PRINTS("\nReconnecting MQTT");
+      _mqtt.connect("sim800l", "user", "mqtt");
+    }
+  }
+  if (!_mqtt.endPublish()) {
+    return ERROR_PUBLISH_END_FAIL;
+  }
+
+  free(_packBuffer);
+  _packBuffer = NULL;
+  clearMeasurementData();
+  PRINTS("\nPublishing done");
+  return ERROR_NONE;
 }

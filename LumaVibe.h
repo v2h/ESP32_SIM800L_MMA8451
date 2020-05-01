@@ -86,7 +86,7 @@ class LumaVibe {
       char            moduleID[20];
       char            moduleType[20];
       char            mqttBroker[20];
-      char            publishTopic[40];
+      char            publishDataTopic[40];
       char            subscribeTopic[40];
       char            format[10]; // always set to "Int16" for now, remove completely later? any use?
       uint8_t         msgType;
@@ -170,6 +170,7 @@ class LumaVibe {
     ERROR setupModem();
     ERROR getTimestampFromNetwork(char timeStamp[21]);
     void  packArray(mpack_writer_t *writer, const char *entryNames[3], const uint16_t length);
+    ERROR publish(char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite);
 };
 
 #endif //LUMAVIBE_H
