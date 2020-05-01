@@ -165,6 +165,7 @@ class LumaVibe {
 
     ERROR enableTimer(hw_timer_t **timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)());
     void  keepAlive();
+    void  initAccelerometer(void);
     void  clearMeasurementData();
     ERROR setupModem();
     ERROR getTimestampFromNetwork(char timeStamp[21]);

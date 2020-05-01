@@ -85,21 +85,7 @@ LumaVibe::ERROR LumaVibe::init(const LumaVibe::Parameters_t *p) {
 
 //
 LumaVibe::ERROR LumaVibe::begin() {
-    // Initialize accelerometer
-    PRINTS("\nInitializing accelerometer");
-    Wire.begin();
-    _accel.SWreset();
-    _accel.setCommonParameters(_params.accelerationRange,
-                               MMA8451Q::RES_MAX, MMA8451Q::LN_OFF, MMA8451Q::DR_100, MMA8451Q::OS_NORMAL, MMA8451Q::HPF_OFF);
-    _accel.setTransientDetection();
-    _accel.setTransientThresholdN(_params.transientThreshold_mG / mG_PER_COUNT, false);  // 0 - 127 is 0 - 8g in 0.063g increments
-    _accel.setTransientDebounceCounter(_params.transientDuration);
-    _accel.setHPFilterCutOff(3);
-    _accel.setInterrupt(MMA8451Q::INT_EN_TRANS, MMA8451Q::INT2, true);
-    uint8_t whoami = _accel._read_register(MMA8451Q::WHO_AM_I);
-    PRINTHEX("\nwhoami: ", whoami);
-    clearAccelInterrupt();
-    enableAccelInterrupt();
+    initAccelerometer();
     accelInterruptFlag = false;
     timerInterruptFlag = false;
     keepAlive();
@@ -414,6 +400,24 @@ LumaVibe::ERROR LumaVibe::enableTimer(hw_timer_t **timer, uint8_t timerNumber, u
 
   timerAlarmEnable(*timer);
   return ERROR_NONE;
+}
+
+//
+void LumaVibe::initAccelerometer(void) {
+  PRINTS("\nInitializing accelerometer");
+  Wire.begin();
+  _accel.SWreset();
+  _accel.setCommonParameters(_params.accelerationRange,
+                              MMA8451Q::RES_MAX, MMA8451Q::LN_OFF, MMA8451Q::DR_100, MMA8451Q::OS_NORMAL, MMA8451Q::HPF_OFF);
+  _accel.setTransientDetection();
+  _accel.setTransientThresholdN(_params.transientThreshold_mG / mG_PER_COUNT, false);  // 0 - 127 is 0 - 8g in 0.063g increments
+  _accel.setTransientDebounceCounter(_params.transientDuration);
+  _accel.setHPFilterCutOff(3);
+  _accel.setInterrupt(MMA8451Q::INT_EN_TRANS, MMA8451Q::INT2, true);
+  uint8_t whoami = _accel._read_register(MMA8451Q::WHO_AM_I);
+  PRINTHEX("\nwhoami: ", whoami);
+  clearAccelInterrupt();
+  enableAccelInterrupt();
 }
 
 //
