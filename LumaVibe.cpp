@@ -11,20 +11,12 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 
 #define DEBUG_MACROS_ENABLE 1
 #include "debug_macros.h"
+#include "helper_macros.h"
 
-#define FCLK_DIVIDER          80
-#define WATCHDOG_TIMER_NUMBER 1
-#define SLEEP_TIMER_NUMBER    0
 #define PACKER_CAPACITY       40000
 #define ERROR_PACKER_CAPACITY 1000
 #define BYTES_PER_WRITE       512
 #define mG_PER_COUNT 63
-
-#define SerialAT  Serial1
-#define SerialUSB Serial
-
-#define MODEM_TX 27
-#define MODEM_RX 26
 
 static const struct {
   const char * const timestamp    = "timestamp";
@@ -292,13 +284,13 @@ void LumaVibe::readSingle(int16_t *xi, int16_t *yi, int16_t *zi) {
 
 //
 void LumaVibe::detachAccelInterrupt() {
-  detachInterrupt(_params.accelInterruptPin);
+  detachInterrupt(ACCEL_PIN);
 }
 
 //
 void LumaVibe::enableAccelInterrupt() {
-  pinMode(_params.accelInterruptPin, INPUT_PULLUP);
-  attachInterrupt(_params.accelInterruptPin, _params.accelISR, FALLING);
+  pinMode(ACCEL_PIN, INPUT_PULLUP);
+  attachInterrupt(ACCEL_PIN, _params.accelISR, FALLING);
   PRINTS("\nAcceleration interrupt enabled");
 }
 
@@ -360,7 +352,7 @@ void LumaVibe::goToSleep(void) {
 #endif
   
   esp_sleep_enable_timer_wakeup(_params.sleepTime_ms * 1000);
-  esp_sleep_enable_ext0_wakeup((gpio_num_t)_params.accelInterruptPin, LOW); //(gpio_num_t)_params.accelInterruptPin
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)ACCEL_PIN, LOW); //(gpio_num_t)ACCEL_PIN
   PRINTS("\nGoodnight!\n");
   SerialUSB.flush();
   delay(3000);

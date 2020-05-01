@@ -2,6 +2,7 @@
 #define LUMAVIBE_H
 
 #include <Arduino.h>
+#include "LumaVibe_globals.h"
 #include "MMA845XQ_Vibe.h"
 #include "esp32-hal-timer.h"
 
@@ -12,10 +13,7 @@
 
 #include "PubSubClient.h"  // https://github.com/knolleary/pubsubclient
 #include "mpack.h"         // https://ludocode.github.io/mpack/
-
 #include "FastLED.h"
-#define NUM_LEDS 1
-#define LED_PIN 2
 
 #define ERROR_STREAM_SIZE 20
 #define MAX_ERROR_COUNT (ERROR_STREAM_SIZE - 4)
@@ -38,9 +36,6 @@ bool setPowerBoostKeepOn(bool en)
 
 // https://electronics.stackexchange.com/questions/287418/sim800-pwrkey-automatic-start
 // https://github.com/Xinyuan-LilyGO/LilyGo-T-Call-SIM800L/blob/master/datasheet/SIM800_Hardware%20Design_V1.08.pdf
-#define MODEM_RST      5  // Active low (also low after modem.sleepEnable() is called)
-#define MODEM_PWKEY    4 // [Pulled up] drive down to turn on the modem
-#define MODEM_POWER_ON 23 // [Pulled-up] active high
 // Set-up modem reset, enable, power pins
 void setModemPins() {
   pinMode(MODEM_PWKEY, OUTPUT);
@@ -56,6 +51,10 @@ void hardResetModem() {
   digitalWrite(MODEM_RST, LOW);
   delay(200); // must be more than 105ms
   digitalWrite(MODEM_RST, HIGH);
+}
+
+void disableModem() {
+  digitalWrite(MODEM_RST, LOW);
 }
 #endif // TTGO
 
@@ -101,7 +100,6 @@ class LumaVibe {
       uint64_t        watchDogTime_ms;
       uint16_t        transientThreshold_mG;
       uint16_t        transientDuration;
-      uint8_t         accelInterruptPin;
       void            (*watchDogISR)();
       void            (*sleepTimerISR)(); 
       void            (*accelISR)();
