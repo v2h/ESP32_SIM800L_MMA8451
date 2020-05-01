@@ -81,17 +81,8 @@ void ota_updater_begin() {
       Serial.println("Out of light sleep");
       sleepCount++;
       Serial.print("sleep count: "); Serial.println(sleepCount);
-      if (3 == sleepCount) {
-        Serial.println("restarting");
-        esp_restart();
-      }
       WiFi.mode(WIFI_STA);
-      if (2 == sleepCount) {
-        WiFi.begin(ssid, password);
-      }
-      else {
-        WiFi.begin("UPC2597763", fakePassword);
-      }
+      WiFi.begin(ssid, password);
       currentTime_ms = millis();
     }
   }
