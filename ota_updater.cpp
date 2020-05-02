@@ -19,6 +19,7 @@ bool RTC_DATA_ATTR g_isEmergency = false;
 #define SSID ("Brainbude")
 #define PASSWORD ("puthepasswordhere")
 static uint8_t RTC_DATA_ATTR sleepCount = 0;
+static bool isLedOn = false;
 
 void ota_updater_begin() {
   ArduinoOTA
@@ -54,8 +55,19 @@ void ota_updater_begin() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID, PASSWORD);    
   uint64_t currentTime_ms = millis();
+  uint64_t ledTimer = millis();
   while (WiFi.waitForConnectResult() != WL_CONNECTED) { // This checks every 10s
-    Serial.println("checking wifi status");
+    if (millis() - ledTimer > 400) {
+      if (isLedOn) {
+        isLedOn = false;
+        g_Vibe.clearLED();
+      }
+      else {
+        isLedOn = true;
+        g_Vibe.setLED(CRGB::Red);
+      }
+      ledTimer = millis();
+    }
     if (millis() - currentTime_ms > TIMEOUT_MINUTE_TO_MS / 2) { // Timeout
       sleepCount++;
       Serial.println("Connection Failed! Going to deep sleep...");
