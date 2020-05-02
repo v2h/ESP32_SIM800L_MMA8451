@@ -14,11 +14,13 @@
 #error "timeout must be less than wakeup time"
 #endif
 
-static const char* ssid = "UPC2597763";
-static const char* password = "PCJNSGCF";
-static const char* fakePassword = "shitshit";
-static uint8_t sleepCount = 0;
-static bool isLedOff = false;
+bool RTC_DATA_ATTR g_isEmergency = false;
+
+#define SSID ("Brainbude")
+#define PASSWORD ("puthepasswordhere")
+static uint8_t RTC_DATA_ATTR sleepCount = 0;
+
+CRGB _led[NUM_LEDS];
 
 void ota_updater_begin() {
   ArduinoOTA
@@ -50,13 +52,15 @@ void ota_updater_begin() {
   Serial.println("\nBooting OTA");
   Serial.printf("Timeout is set to %u sec\n", TIMEOUT_MINUTE_TO_MS / 1000);
   Serial.printf("(Light) sleep time is set to %u sec\n", SLEEPTIME_MINUTE_TO_uS / 1000000);
+  Serial.printf("\nSleep count: %d\n", sleepCount);
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, fakePassword);
+  WiFi.begin(SSID, PASSWORD);    
   uint64_t currentTime_ms = millis();
   while (WiFi.waitForConnectResult() != WL_CONNECTED) { // This checks every 10s
     Serial.println("checking wifi status");
     if (millis() - currentTime_ms > TIMEOUT_MINUTE_TO_MS / 2) { // Timeout
-      Serial.println("Connection Failed! Going to light sleep...");
+      sleepCount++;
+      Serial.println("Connection Failed! Going to deep sleep...");
       if (btStop()) {
         Serial.println("Bluetooth stopped");
       }
@@ -65,25 +69,12 @@ void ota_updater_begin() {
       }
       delay(1000); // (!?)
       esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL); // (!?)
-      if (ESP_OK != esp_sleep_enable_timer_wakeup(30 * 1000000)) {
-        Serial.println("Cannot enable sleep timer");
-      }
-      else {
-        Serial.println("Sleeping");
-        delay(1000);
-        Serial.flush();
-        Serial.end();
-        esp_light_sleep_start();
-      }      
-      Serial.begin(115200);
+      esp_sleep_enable_timer_wakeup(15 * 60 * 1000000);
+      Serial.println("Sleeping");
       delay(1000);
-      g_Vibe.setLED(CRGB::Red);
-      Serial.println("Out of light sleep");
-      sleepCount++;
-      Serial.print("sleep count: "); Serial.println(sleepCount);
-      WiFi.mode(WIFI_STA);
-      WiFi.begin(ssid, password);
-      currentTime_ms = millis();
+      Serial.flush();
+      g_isEmergency = true;
+      esp_deep_sleep_start();      
     }
   }
 

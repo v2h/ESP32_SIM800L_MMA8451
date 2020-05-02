@@ -38,6 +38,12 @@ void IRAM_ATTR sleepTimerISR() {
 //
 void setup() {
   SerialUSB.begin(115200);
+  if (g_isEmergency) {
+    g_Vibe.detachAccelInterrupt();
+    g_Vibe.initLed();
+    PRINTS("\nRe-entering emergency mode");
+    ota_updater_begin();
+  }
   g_Vibe.setPowerBoostKeepOn(true);
   g_Vibe.setModemPins();
   g_Vibe.hardResetModem();

@@ -409,6 +409,12 @@ bool LumaVibe::isFirstBoot() {
 }
 
 //
+void LumaVibe::initLed(void) {
+  FastLED.addLeds<NEOPIXEL, LED_PIN>(_led, NUM_LEDS); // CAUTION
+  FastLED.setBrightness(30);
+}
+
+//
 void LumaVibe::setLED(CRGB::HTMLColorCode color) {
   _led[0] = color;
   FastLED.show();

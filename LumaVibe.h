@@ -103,6 +103,7 @@ class LumaVibe {
     void setPeriod(uint32_t period_s);
     void goToSleep(void);
     bool isFirstBoot();
+    void initLed(void);
     void setLED(CRGB::HTMLColorCode color);
     void clearLED();
     void flashLED(CRGB::HTMLColorCode color, uint16_t duration_ms, uint8_t numberOfTimes, bool retainColor);
@@ -150,5 +151,6 @@ class LumaVibe {
 // Declared with 'extern' so other files can use..
 // ..whenever this header is included
 extern LumaVibe g_Vibe;
+extern bool g_isEmergency;
 
 #endif //LUMAVIBE_H
