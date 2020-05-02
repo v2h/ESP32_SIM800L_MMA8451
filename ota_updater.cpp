@@ -20,8 +20,6 @@ bool RTC_DATA_ATTR g_isEmergency = false;
 #define PASSWORD ("puthepasswordhere")
 static uint8_t RTC_DATA_ATTR sleepCount = 0;
 
-CRGB _led[NUM_LEDS];
-
 void ota_updater_begin() {
   ArduinoOTA
     .onStart([]() {
