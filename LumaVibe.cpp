@@ -15,7 +15,7 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 #define PACKER_CAPACITY       40000
 #define ERROR_PACKER_CAPACITY 1000
 #define BYTES_PER_WRITE       512
-#define mG_PER_COUNT 63
+#define mG_PER_COUNT          63
 
 static const struct {
   const char * const timestamp    = "timestamp";
@@ -44,11 +44,13 @@ LumaVibe::LumaVibe() :
   _mqtt(_client) 
   {}
 
+// TTGO-specific functions for power and modem
 #ifdef TTGO
 // https://electronics.stackexchange.com/questions/287418/sim800-pwrkey-automatic-start
 // https://github.com/Xinyuan-LilyGO/LilyGo-T-Call-SIM800L/blob/master/datasheet/SIM800_Hardware%20Design_V1.08.pdf
 #define IP5306_ADDR          0x75
 #define IP5306_REG_SYS_CTL0  0x00
+
 bool LumaVibe::setPowerBoostKeepOn(bool en)
 {
   Wire.beginTransmission(IP5306_ADDR);
@@ -84,7 +86,7 @@ void LumaVibe::setModemPins() { // Private
 }
 #endif // TTGO
 
-// Copy parameters + initialize watchdog timer
+//
 LumaVibe::ERROR LumaVibe::init(const LumaVibe::Parameters_t *p) {
   if (0 == p->watchDogTime_ms) {
     return ERROR_TIME_ZERO;

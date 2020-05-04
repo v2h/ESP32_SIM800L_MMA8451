@@ -13,7 +13,9 @@
 #define SSID "UPC2597763"
 #define PASSWORD "PCJNSGCF"
 
+// Declared in LumaVibe_globals.h, defined in main file
 bool RTC_DATA_ATTR g_isEmergency;
+
 static uint8_t RTC_DATA_ATTR sleepCount = 0;
 static bool isLedOn = false;
 
