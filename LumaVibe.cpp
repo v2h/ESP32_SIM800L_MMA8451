@@ -108,6 +108,10 @@ LumaVibe::ERROR LumaVibe::init(const LumaVibe::Parameters_t *p) {
   _accelBuffer.isBufferAllocated = false;
   _timers.sleepTimer = NULL;
 
+  // Turn of Bluetooth and Wifi
+  btStop();
+  WiFi.mode(WIFI_OFF);
+
   FastLED.addLeds<NEOPIXEL, LED_PIN>(_led, NUM_LEDS); // CAUTION
   FastLED.setBrightness(30);
  
