@@ -15,6 +15,8 @@
 #define DEBUG_MACROS_ENABLE 1
 #include "debug_macros.h"
 
+#include "ota_updater.h"
+
 LumaVibe g_Vibe;
 
 //
@@ -36,7 +38,8 @@ void IRAM_ATTR sleepTimerISR() {
 }
 
 //
-void setup() {
+void setup() { // takes 231 ms
+  uint32_t setupTimer = millis();
   SerialUSB.begin(115200);
   if (g_isEmergency) {
     g_Vibe.detachAccelInterrupt();
@@ -64,11 +67,10 @@ void setup() {
     2048,                       // samplesPerMeasurement
     5,                          // measurementInterval_ms
     MMA8451Q::RANGE_4G,         // accelerationRange
-    240000,                     // sleepTime_ms
+    30*60000,                   // sleepTime_ms
     60000,                      // watchDogTime_ms
     300,                        // transientThreshold in mG
     30,                         // transientDuration
-    25,                         // accelInterruptPin
     &watchDogISR,
     &sleepTimerISR,
     &accelerometerISR
@@ -84,6 +86,7 @@ void setup() {
   if (LumaVibe::ERROR_NONE != err)
     g_Vibe.LOG_ERROR(err);
 
+  SerialUSB.printf("\nSetup took %lu ms", millis() - setupTimer);
   PRINTS("\nEnd of setup()\n");
 }
 
@@ -91,16 +94,17 @@ void setup() {
 void loop() {
   PRINTS("loop");
   if (g_Vibe.isFirstBoot()) {
-    PRINTS("\nFirst blood");
     g_Vibe.detachAccelInterrupt();
     delay(1000);
     g_Vibe.clearAccelInterrupt();
     g_Vibe.accelInterruptFlag = false;
     g_Vibe.timerInterruptFlag = false;
     g_Vibe.enableAccelInterrupt();
+    PRINTS("First boot");
     g_Vibe.setLED(CRGB::DarkBlue);
     g_Vibe.goToSleep();
   }
+  
   if (g_Vibe.accelInterruptFlag || g_Vibe.timerInterruptFlag) {
     g_Vibe.detachAccelInterrupt();
     PRINT("\naccelInterruptFlag: ", g_Vibe.accelInterruptFlag);
@@ -112,12 +116,12 @@ void loop() {
     err = g_Vibe.measure();
     if (LumaVibe::ERROR_NONE != err)
       g_Vibe.LOG_ERROR(err);
-    delay(10000);
+    //delay(10000);
     
     g_Vibe.setLED(CRGB::Aqua);
     uint32_t packedData;
     err = g_Vibe.packData(&packedData);
-    if (LumaVibe::ERROR_NONE != err) 
+    if (LumaVibe::ERROR_NONE != err)
       g_Vibe.LOG_ERROR(err);
     PRINT("\nPacked Bytes: ", packedData);
 
@@ -130,16 +134,20 @@ void loop() {
     // Handle errors here
     if (0 != g_Vibe.countError()) {
       PRINTS("\nThere is error");
-      if (g_Vibe.countNetworkError() >= 6) {
-        PRINTS("\nThere is network error");
-        ; // TODO: emergency ota
+      if (g_Vibe.countNetworkError() >= 6 || 
+          g_Vibe.countError() >= MAX_ERROR_COUNT || 
+          g_Vibe.countWatchdogTimeoutError() >= 10) {
+        // Jump to emergency-OTA
+        g_Vibe.endWatchDog();
+        g_Vibe.disableModem();
+        g_Vibe.setPowerBoostKeepOn(false);
+        g_Vibe.setLED(CRGB::Red);
+        ota_updater_begin();
       }
-      else if (g_Vibe.countError() >= MAX_ERROR_COUNT) {
-        PRINTS("\nToo many errors");
-        ;// TODO: emergency ota
-      }
-      else {
-        packedData = 0;
+      else { // Publish list of (not so critical) errors
+        uint32_t packedData;
+        LumaVibe::ERROR err;
+        //packedData = 0;
         PRINTS("\nPacking up error");
         err = g_Vibe.packError(&packedData);
         if (LumaVibe::ERROR_NONE != err) {
