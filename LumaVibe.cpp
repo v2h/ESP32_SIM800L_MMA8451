@@ -250,8 +250,6 @@ void LumaVibe::logError(ERROR error, uint16_t line) {
   char errorString[40];
   sprintf(errorString, "\nError: %u at line: %u\n", error, line);
   PRINTS(errorString);
-
-  while (1);
 }
 
 
