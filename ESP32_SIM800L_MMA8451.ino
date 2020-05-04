@@ -33,11 +33,6 @@ void IRAM_ATTR watchDogISR() {
 }
 
 //
-void IRAM_ATTR sleepTimerISR() {
-  ;
-}
-
-//
 void setup() { // takes 231 ms
   uint32_t setupTimer = millis();
   SerialUSB.begin(115200);
