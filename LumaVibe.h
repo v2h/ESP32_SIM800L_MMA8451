@@ -108,7 +108,9 @@ class LumaVibe {
     void clearLED();
     void flashLED(CRGB::HTMLColorCode color, uint16_t duration_ms, uint8_t numberOfTimes, bool retainColor);
 
+#if (!LUMAVIBE_PUBLIC_ALL)
   private: 
+#endif
     static RTC_DATA_ATTR Parameters_t _params; // stored in RTC memory
     static RTC_DATA_ATTR uint64_t     _bootCount; // stored in RTC memory
     static RTC_DATA_ATTR uint8_t      _errorStream[ERROR_STREAM_SIZE];
@@ -136,7 +138,6 @@ class LumaVibe {
     hw_timer_t *watchDogTimer;
     hw_timer_t *sleepTimer;
     } _timers;
-
     ERROR enableTimer(hw_timer_t **timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)());
     void  keepAlive();
     void  initAccelerometer(void);

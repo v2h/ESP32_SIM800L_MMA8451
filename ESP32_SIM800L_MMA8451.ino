@@ -8,7 +8,7 @@
 #include "esp_attr.h"
 
 #define LUMAVIBE_ENABLE_ERROR_LOGGING 1
-#define TTGO
+#define LUMAVIBE_PUBLIC_ALL 0 // Turn all private members into public
 #include "LumaVibe.h"
 
 #define SerialUSB Serial
@@ -131,12 +131,11 @@ void loop() {
       g_Vibe.LOG_ERROR(err);
     
     g_Vibe.getCommandsFromServer(mqttCallback);
+    PRINT("\nError Count: ", g_Vibe.countError());
     // Handle errors here
     if (0 != g_Vibe.countError()) {
       PRINTS("\nThere is error");
-      if (g_Vibe.countNetworkError() >= 6 || 
-          g_Vibe.countError() >= MAX_ERROR_COUNT || 
-          g_Vibe.countWatchdogTimeoutError() >= 10) {
+      if (g_Vibe.countNetworkError() >= 6 || g_Vibe.countError() >= MAX_ERROR_COUNT) {
         // Jump to emergency-OTA
         g_Vibe.endWatchDog();
         g_Vibe.disableModem();

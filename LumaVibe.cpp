@@ -110,7 +110,7 @@ LumaVibe::ERROR LumaVibe::init(const LumaVibe::Parameters_t *p) {
 
   FastLED.addLeds<NEOPIXEL, LED_PIN>(_led, NUM_LEDS); // CAUTION
   FastLED.setBrightness(30);
-  
+ 
   return ERROR_NONE;
 }
 
@@ -383,7 +383,7 @@ void LumaVibe::goToSleep(void) {
   }
 #ifdef TTGO
   if (setPowerBoostKeepOn(false)) {
-    PRINTS("Power boost turned off");
+    PRINTS("\nPower boost turned off");
   }
 #endif
   
