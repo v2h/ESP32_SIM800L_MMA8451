@@ -151,9 +151,10 @@ LumaVibe::ERROR LumaVibe::measure() {
     return ERROR_NOT_ENOUGH_MEMORY;
   }
   _accelBuffer.isBufferAllocated = true;
+  uint32_t startTime = millis();
   for (uint16_t index = 0; index  < _params.samplesPerMeasurement; index++) {
-    uint32_t startTime = millis();
     while (millis() - startTime < _params.measurementInterval_ms);
+    startTime = millis();
     _accel.update();
     _accelBuffer.data[index].xi = (_accel._xi);
     _accelBuffer.data[index].yi = (_accel._yi);
