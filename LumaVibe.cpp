@@ -70,6 +70,8 @@ void LumaVibe::hardResetModem() {
 
 void LumaVibe::disableModem() {
   digitalWrite(MODEM_RST, LOW);
+  digitalWrite(MODEM_PWKEY, HIGH);
+  digitalWrite(MODEM_POWER_ON, LOW);
 }
 
 void LumaVibe::setModemPins() { // Private
