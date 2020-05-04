@@ -87,7 +87,7 @@ void LumaVibe::setModemPins() { // Private
 
 // Copy parameters + initialize watchdog timer
 LumaVibe::ERROR LumaVibe::init(const LumaVibe::Parameters_t *p) {
-  if (0 == p->sleepTime_ms || 0 == p->watchDogTime_ms) {
+  if (0 == p->watchDogTime_ms) {
     return ERROR_TIME_ZERO;
   }
   if (0 == p->frequency) {

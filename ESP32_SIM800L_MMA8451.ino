@@ -72,7 +72,6 @@ void setup() { // takes 231 ms
     300,                        // transientThreshold in mG
     30,                         // transientDuration
     &watchDogISR,
-    &sleepTimerISR,
     &accelerometerISR
   };
 

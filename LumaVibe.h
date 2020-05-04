@@ -63,7 +63,6 @@ class LumaVibe {
       uint16_t        transientThreshold_mG;
       uint16_t        transientDuration;
       void            (*watchDogISR)();
-      void            (*sleepTimerISR)(); 
       void            (*accelISR)();
     } Parameters_t;
 
