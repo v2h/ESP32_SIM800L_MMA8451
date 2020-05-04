@@ -9,7 +9,6 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 #include <WiFi.h>
 #include <stdlib.h> // For malloc()
 
-#define DEBUG_MACROS_ENABLE 1
 #include "debug_macros.h"
 #include "helper_macros.h"
 

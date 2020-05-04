@@ -8,14 +8,8 @@
 #include "esp_attr.h"
 #include <WiFi.h>
 
-#define LUMAVIBE_ENABLE_ERROR_LOGGING 1
-#define LUMAVIBE_PUBLIC_ALL 0 // Turn all private members into public
 #include "LumaVibe.h"
-
-#define SerialUSB Serial
-#define DEBUG_MACROS_ENABLE 1
 #include "debug_macros.h"
-
 #include "ota_updater.h"
 
 LumaVibe g_Vibe;
