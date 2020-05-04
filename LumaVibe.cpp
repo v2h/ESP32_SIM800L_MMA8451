@@ -533,9 +533,10 @@ LumaVibe::ERROR LumaVibe::getTimestampFromNetwork(char timeStamp[21]) {
   // TODO: handle possible error
   int year, month, day, hour, minute, second;
   year = month = day = hour = minute = second = 0;
-  for (uint8_t i = 0; i < 3; i++) {
+  for (uint8_t i = 0; i < 10; i++) {
     if (!_modem.getGsmLocationTime(&year, &month, &day, &hour, &minute, &second)) {
       PRINTS("\nCannot retrieve network time, defaulting to 0000-00-00T00:00:00Z");
+      keepAlive();
       yield();
     }
     else {
