@@ -129,7 +129,7 @@ void loop() {
     // Handle errors here
     if (0 != g_Vibe.countError()) {
       PRINTS("\nThere is error");
-      if (g_Vibe.countNetworkError() >= 6 || g_Vibe.countError() >= MAX_ERROR_COUNT) {
+      if (g_Vibe.countNetworkError() >= MAX_NETWORK_ERROR_COUNT || g_Vibe.countError() >= MAX_ERROR_COUNT) {
         // Jump to emergency-OTA
         g_Vibe.endWatchDog();
         g_Vibe.disableModem();

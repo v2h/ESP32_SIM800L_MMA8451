@@ -22,4 +22,8 @@
 #define LUMAVIBE_PUBLIC_ALL 0 // Turn all private members into public
 #define DEBUG_MACROS_ENABLE 1
 
+#define ERROR_STREAM_SIZE 20
+#define MAX_ERROR_COUNT (ERROR_STREAM_SIZE - 4)
+#define MAX_NETWORK_ERROR_COUNT 6
+
 #endif // LUMAVIBE_GLOBAL_H

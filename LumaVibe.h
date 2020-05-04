@@ -17,9 +17,6 @@
 #include "mpack.h"         // https://ludocode.github.io/mpack/
 #include "FastLED.h"
 
-#define ERROR_STREAM_SIZE 20
-#define MAX_ERROR_COUNT (ERROR_STREAM_SIZE - 4)
-
 // Marcro for handdling errors
 #if LUMAVIBE_ENABLE_ERROR_LOGGING
 #define LOG_ERROR(e) logError(e, __LINE__)
