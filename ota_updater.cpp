@@ -10,10 +10,6 @@
 #define TIMEOUT_MINUTE_TO_MS (1 * 60 * 1000)
 #define SLEEPTIME_MINUTE_TO_uS (2 * 60 * 1000000)
 
-#if (TIMEOUT_MINUTE_TO_MS >= SLEEPTIME_MINUTE_TO_uS)
-#error timeout must be less than wakeup time
-#endif
-
 #define SSID "UPC2597763"
 #define PASSWORD "PCJNSGCF"
 
@@ -57,6 +53,7 @@ void ota_updater_begin() {
   uint64_t currentTime_ms = millis();
   uint64_t ledTimer = millis();
   while (WiFi.waitForConnectResult() != WL_CONNECTED) { // This checks every 10s
+    // Flash LED
     if (millis() - ledTimer > 400) {
       if (isLedOn) {
         isLedOn = false;
@@ -68,6 +65,7 @@ void ota_updater_begin() {
       }
       ledTimer = millis();
     }
+    // Check for timeout -> sleep
     if (millis() - currentTime_ms > TIMEOUT_MINUTE_TO_MS) { // Timeout
       sleepCount++;
       SerialUSB.println("Connection Failed! Going to deep sleep...");
@@ -80,7 +78,7 @@ void ota_updater_begin() {
       delay(1000); // (!?)
       g_Vibe.setLED(CRGB::Red);
       esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL); // (!?)
-      esp_sleep_enable_timer_wakeup(20 * 1000000);
+      esp_sleep_enable_timer_wakeup(SLEEPTIME_MINUTE_TO_uS);
       SerialUSB.println("Sleeping");
       delay(1000);
       SerialUSB.flush();
