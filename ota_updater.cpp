@@ -11,13 +11,13 @@
 #define SLEEPTIME_MINUTE_TO_uS (2 * 60 * 1000000)
 
 #if (TIMEOUT_MINUTE_TO_MS >= SLEEPTIME_MINUTE_TO_uS)
-#error "timeout must be less than wakeup time"
+#error timeout must be less than wakeup time
 #endif
 
-bool RTC_DATA_ATTR g_isEmergency = false;
+#define SSID "UPC2597763"
+#define PASSWORD "PCJNSGCF"
 
-#define SSID ("Brainbude")
-#define PASSWORD ("puthepasswordhere")
+bool RTC_DATA_ATTR g_isEmergency;
 static uint8_t RTC_DATA_ATTR sleepCount = 0;
 static bool isLedOn = false;
 
@@ -31,29 +31,29 @@ void ota_updater_begin() {
         type = "filesystem";
 
       // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      Serial.println("Start updating " + type);
+      SerialUSB.println("Start updating " + type);
     })
     .onEnd([]() {
-      Serial.println("\nEnd");
+      SerialUSB.println("\nEnd");
     })
     .onProgress([](unsigned int progress, unsigned int total) {
-      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+      SerialUSB.printf("Progress: %u%%\r", (progress / (total / 100)));
     })
     .onError([](ota_error_t error) {
-      Serial.printf("Error[%u]: ", error);
-      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-      else if (error == OTA_END_ERROR) Serial.println("End Failed");
+      SerialUSB.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) SerialUSB.println("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) SerialUSB.println("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) SerialUSB.println("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) SerialUSB.println("Receive Failed");
+      else if (error == OTA_END_ERROR) SerialUSB.println("End Failed");
     });
 
-  Serial.println("\nBooting OTA");
-  Serial.printf("Timeout is set to %u sec\n", TIMEOUT_MINUTE_TO_MS / 1000);
-  Serial.printf("(Light) sleep time is set to %u sec\n", SLEEPTIME_MINUTE_TO_uS / 1000000);
-  Serial.printf("\nSleep count: %d\n", sleepCount);
+  SerialUSB.println("\nBooting OTA");
+  SerialUSB.printf("Timeout is set to %u sec\n", TIMEOUT_MINUTE_TO_MS / 1000);
+  SerialUSB.printf("(Light) sleep time is set to %u sec\n", SLEEPTIME_MINUTE_TO_uS / 1000000);
+  SerialUSB.printf("\nSleep count: %d\n", sleepCount);
   WiFi.mode(WIFI_STA);
-  WiFi.begin(SSID, PASSWORD);    
+  WiFi.begin(SSID, PASSWORD);
   uint64_t currentTime_ms = millis();
   uint64_t ledTimer = millis();
   while (WiFi.waitForConnectResult() != WL_CONNECTED) { // This checks every 10s
@@ -68,21 +68,22 @@ void ota_updater_begin() {
       }
       ledTimer = millis();
     }
-    if (millis() - currentTime_ms > TIMEOUT_MINUTE_TO_MS / 2) { // Timeout
+    if (millis() - currentTime_ms > TIMEOUT_MINUTE_TO_MS) { // Timeout
       sleepCount++;
-      Serial.println("Connection Failed! Going to deep sleep...");
+      SerialUSB.println("Connection Failed! Going to deep sleep...");
       if (btStop()) {
-        Serial.println("Bluetooth stopped");
+        SerialUSB.println("Bluetooth stopped");
       }
       if (WiFi.mode(WIFI_OFF)) {
-        Serial.println("Wifi off");
+        SerialUSB.println("Wifi off");
       }
       delay(1000); // (!?)
+      g_Vibe.setLED(CRGB::Red);
       esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL); // (!?)
-      esp_sleep_enable_timer_wakeup(15 * 60 * 1000000);
-      Serial.println("Sleeping");
+      esp_sleep_enable_timer_wakeup(20 * 1000000);
+      SerialUSB.println("Sleeping");
       delay(1000);
-      Serial.flush();
+      SerialUSB.flush();
       g_isEmergency = true;
       esp_deep_sleep_start();      
     }
@@ -105,14 +106,12 @@ void ota_updater_begin() {
 
   ArduinoOTA.begin();
 
-  Serial.println("Ready");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  SerialUSB.println("Ready");
+  SerialUSB.print("IP address: ");
+  SerialUSB.println(WiFi.localIP());
 
   // Only reach here when connection has been established
   while (1) {
     ArduinoOTA.handle();
-    // Nothing should be down here..
-    // ..else light sleep won't work (?!)
   }
 }
