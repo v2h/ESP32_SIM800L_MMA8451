@@ -28,14 +28,14 @@ void IRAM_ATTR watchDogISR() {
 }
 
 //
-void setup() { // takes 231 ms
+void setup() { // takes 33ms
   uint32_t setupTimer = millis();
   SerialUSB.begin(115200);
-  SerialUSB.print("\nMAC address: ");
+  SerialUSB.print("MAC address: ");
   SerialUSB.println(WiFi.macAddress());
-  
   SerialUSB.print("Firmware version: ");
   SerialUSB.println(FIRMWARE_VERSION);
+
   // This checks if the board wakes up from emergency-OTA
   if (g_isEmergency) {
     g_Vibe.detachAccelInterrupt();
@@ -87,7 +87,7 @@ void setup() { // takes 231 ms
 
 //
 void loop() {
-  PRINTS("loop");
+  PRINTS("\nloop");
   if (g_Vibe.isFirstBoot()) {
     g_Vibe.detachAccelInterrupt();
     delay(1000);
@@ -95,7 +95,7 @@ void loop() {
     g_Vibe.accelInterruptFlag = false;
     g_Vibe.timerInterruptFlag = false;
     g_Vibe.enableAccelInterrupt();
-    PRINTS("First boot");
+    PRINTS("\nFirst boot");
     g_Vibe.setLED(CRGB::DarkBlue);
     g_Vibe.goToSleep();
   }
