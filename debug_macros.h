@@ -18,10 +18,14 @@
   } while (0)
 
 #define PRINTVAL(v) Serial.print(v)
+#define PRINTF(f_, ...) SerialUSB.printf((f_), __VA_ARGS__)
+
 #else
 #define PRINTS(s)
 #define PRINT(s,v)
 #define PRINTHEX(s,v)
+#define PRINTVAL(v)
+#define PRINTF(f_, ...)
 
 #endif // DEBUG_MACROS_ENABLE
 
