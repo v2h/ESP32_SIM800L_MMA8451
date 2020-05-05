@@ -64,8 +64,8 @@ void setup() { // takes 231 ms
     MMA8451Q::RANGE_4G,         // accelerationRange
     30*60000,                   // sleepTime_ms
     60000,                      // watchDogTime_ms
-    300,                        // transientThreshold in mG
-    30,                         // transientDuration
+    100,                        // transientThreshold in mG
+    10,                         // transientDuration
     &watchDogISR,
     &accelerometerISR
   };
