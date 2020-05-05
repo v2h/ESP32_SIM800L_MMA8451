@@ -44,7 +44,6 @@ void setup() { // takes 231 ms
 
   g_Vibe.setPowerBoostKeepOn(true);
   g_Vibe.setModemPins();
-  g_Vibe.hardResetModem();
   PRINTS("\nHello there\n");
 
   // For pin defines, change them in LumaVibe_globals.h
