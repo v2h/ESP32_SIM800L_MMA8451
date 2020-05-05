@@ -99,7 +99,7 @@ LumaVibe::ERROR LumaVibe::init(const LumaVibe::Parameters_t *p) {
     return ERROR_TIMER_NULL;
   }
   _bootCount++; // Caution: when to increment bootCount??
-  PRINT("bootCount: ", (long)_bootCount);
+  PRINT("\nbootCount: ", (long)_bootCount);
   if (isFirstBoot()) {
     memcpy(&_params, p, sizeof(Parameters_t));
   }
@@ -549,7 +549,7 @@ LumaVibe::ERROR LumaVibe::syncTimeWithNetwork(uint32_t timeAtMeasure_ms, char ti
     else {
       timeAtNetwork_ms = millis();
       PRINTS("\nNetwork time retrieved: ");
-      SerialUSB.printf("%04d-%02d-%02dT%02d:%02d:%02dZ", timeBuffer.tm_year, timeBuffer.tm_mon, timeBuffer.tm_mday, 
+      PRINTF("%04d-%02d-%02dT%02d:%02d:%02dZ", timeBuffer.tm_year, timeBuffer.tm_mon, timeBuffer.tm_mday, 
                                                          timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
       break;
     }
@@ -572,7 +572,8 @@ LumaVibe::ERROR LumaVibe::syncTimeWithNetwork(uint32_t timeAtMeasure_ms, char ti
   sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", shiftedTime.tm_year, shiftedTime.tm_mon, shiftedTime.tm_mday, 
                                                       shiftedTime.tm_hour, shiftedTime.tm_min, shiftedTime.tm_sec);
   PRINTS("\ntimestamp: ");
-  SerialUSB.println(String(timeStamp));
+  PRINTVAL(String(timeStamp));
+  PRINTVAL("\n");
   keepAlive();
   return ERROR_NONE;
 }
@@ -581,7 +582,7 @@ LumaVibe::ERROR LumaVibe::syncTimeWithNetwork(uint32_t timeAtMeasure_ms, char ti
 void LumaVibe::packArray(mpack_writer_t *writer, const char *entryNames[3], const uint16_t length) {
   PRINT("\nLength: ", length);
   for (uint8_t i = 0; i < 3; i++) {
-    PRINTS("\nentry: "); PRINTS(entryNames[i]);
+    PRINTS("\nentry: "); PRINTVAL(entryNames[i]);
     mpack_write_cstr(writer, entryNames[i]);
     mpack_write_tag(writer, mpack_tag_make_array(length));
     for (uint16_t j = 0; j < length; j++) {

@@ -31,10 +31,8 @@ void IRAM_ATTR watchDogISR() {
 void setup() { // takes 33ms
   uint32_t setupTimer = millis();
   SerialUSB.begin(115200);
-  SerialUSB.print("MAC address: ");
-  SerialUSB.println(WiFi.macAddress());
-  SerialUSB.print("Firmware version: ");
-  SerialUSB.println(FIRMWARE_VERSION);
+  PRINT("\nMAC address: ", WiFi.macAddress());
+  PRINT("\nFirmware version: ", FIRMWARE_VERSION);
 
   // This checks if the board wakes up from emergency-OTA
   if (g_isEmergency) {
@@ -46,7 +44,6 @@ void setup() { // takes 33ms
 
   g_Vibe.setPowerBoostKeepOn(true);
   g_Vibe.setModemPins();
-  PRINTS("\nHello there\n");
 
   // For pin defines, change them in LumaVibe_globals.h
   // https://www.reddit.com/r/FastLED/comments/e4w6xh/not_usable_in_a_constant_expression/
@@ -81,7 +78,7 @@ void setup() { // takes 33ms
   if (LumaVibe::ERROR_NONE != err)
     g_Vibe.LOG_ERROR(err);
 
-  SerialUSB.printf("\nSetup took %lu ms", millis() - setupTimer);
+  PRINTF("\nSetup took %lu ms", millis() - setupTimer);
   PRINTS("\nEnd of setup()\n");
 }
 
@@ -173,17 +170,17 @@ void loop() {
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  SerialUSB.println(F("\nMessage arrived"));
-  SerialUSB.println(topic);
-  SerialUSB.println();
+  PRINTS("\nMessage arrived\n");
+  PRINTVAL(topic);
+  PRINTVAL("\n");
   for (int i = 0; i < length; i++) {
-    SerialUSB.print((char)payload[i]);
+    PRINTVAL((char)payload[i]);
   }
-  SerialUSB.println();
+  PRINTVAL("\n");
   mpack_reader_t reader;
   mpack_reader_init_data(&reader, (char *)payload, length);
   uint8_t count = mpack_expect_map_range(&reader, 3, 8);
-  SerialUSB.print("\nNumber of fields: "); SerialUSB.println(count);
+  PRINTS("\nNumber of fields: "); PRINTVAL(count);
 
   mpack_expect_cstr_match(&reader, "sender");
   char sender[15];
@@ -217,7 +214,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   g_Vibe.setTransientDuration(transientDuration);
   g_Vibe.setPeriod(period);
 
-  PRINTS("\nsender: "); PRINTS(sender);
+  PRINTS("\nsender: "); PRINTVAL(sender);
   PRINT("\n_msgid: ", _msgid);
   PRINT("\ntrans_threshold (mG): ", transientThreshold);
   PRINT("\ntrans_debcntr: ", transientDuration);
