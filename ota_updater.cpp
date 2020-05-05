@@ -48,7 +48,7 @@ void ota_updater_begin() {
 
   SerialUSB.println("\nBooting OTA");
   SerialUSB.printf("Timeout is set to %u sec\n", TIMEOUT_MINUTE_TO_MS / 1000);
-  SerialUSB.printf("(Light) sleep time is set to %u sec\n", SLEEPTIME_MINUTE_TO_uS / 1000000);
+  SerialUSB.printf("deepsleep time is set to %u sec\n", SLEEPTIME_MINUTE_TO_uS / 1000000);
   SerialUSB.printf("\nSleep count: %d\n", sleepCount);
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID, PASSWORD);
