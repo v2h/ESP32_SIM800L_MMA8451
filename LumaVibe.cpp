@@ -517,12 +517,16 @@ LumaVibe::ERROR LumaVibe::setupModem() {
   PRINTS("\nnetwork connected...");
   keepAlive();
   PRINTS("\nconnecting to GPRS..");
+  uint8_t gprsTry = 0;
   do {
-    static uint8_t count = 0;
-    PRINT("retry..", count++);
+    PRINT("retry..", gprsTry);
     _modem.gprsConnect("", "", "");
     delay(1000);
-  } while (!_modem.isGprsConnected()); // ATTENTION: WHILE LOOP!!
+    gprsTry++;
+  } while (!_modem.isGprsConnected() && gprsTry < 5); // ATTENTION: WHILE LOOP!!
+  if (!_modem.isGprsConnected()) {
+    return ERROR_MODEM_GPRS_NOT_CONNECTED;
+  }
   PRINTS("\nGPRS connected");
   keepAlive();
   return ERROR_NONE;
@@ -568,14 +572,18 @@ void LumaVibe::packArray(mpack_writer_t *writer, const char *entryNames[3], cons
 // 
 LumaVibe::ERROR LumaVibe::publish(char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite) {
   PRINT("\nBytes to be published: ", bytesToPublish);
+  uint8_t mqttTry = 1;
   do {
-    uint8_t count = 1;
     PRINTS("\nConnecting MQTT");
-    PRINT("..", count++);
+    PRINT("..", mqttTry);
     _mqtt.connect("sim800l", "user", "mqtt");
     PRINT("\nMQTT state: ", _mqtt.state()); // Should be 0
+    mqttTry++;
     delay(1000);
-  } while (!_mqtt.connected());
+  } while (!_mqtt.connected() && mqttTry < 5);
+  if (!_mqtt.connected()) {
+    return ERROR_MQTT_NOT_CONNECTED; 
+  }
   if(!_mqtt.beginPublish(publishTopic, bytesToPublish, false)) {
     return ERROR_PUBLISH_BEGIN_FAIL;
   }
