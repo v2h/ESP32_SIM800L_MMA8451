@@ -108,24 +108,26 @@ void loop() {
     LumaVibe::ERROR err;
 
     g_Vibe.setLED(CRGB::Purple);
-    err = g_Vibe.measure();
+    uint32_t timeAtMeasure; // to store the millis() in sec at the very first measurement
+    err = g_Vibe.measure(&timeAtMeasure);
     if (LumaVibe::ERROR_NONE != err)
       g_Vibe.LOG_ERROR(err);
     //delay(10000);
     
     g_Vibe.setLED(CRGB::Aqua);
-    uint32_t packedData;
-    err = g_Vibe.packData(&packedData);
+    uint32_t bytesPacked;
+    err = g_Vibe.packData(timeAtMeasure, &bytesPacked);
     if (LumaVibe::ERROR_NONE != err)
       g_Vibe.LOG_ERROR(err);
-    PRINT("\nPacked Bytes: ", packedData);
+    PRINT("\nPacked Bytes: ", bytesPacked);
 
     g_Vibe.setLED(CRGB::Green);
-    err = g_Vibe.publishData(packedData, 512);
+    err = g_Vibe.publishData(bytesPacked, 512);
     if (LumaVibe::ERROR_NONE != err)
       g_Vibe.LOG_ERROR(err);
     
     g_Vibe.getCommandsFromServer(mqttCallback);
+
     PRINT("\nError Count: ", g_Vibe.countError());
     // Handle errors here
     if (0 != g_Vibe.countError()) {
@@ -139,15 +141,15 @@ void loop() {
         ota_updater_begin();
       }
       else { // Publish list of (not so critical) errors
-        uint32_t packedData;
+        uint32_t bytesPacked;
         LumaVibe::ERROR err;
-        //packedData = 0;
+        //bytesPacked = 0;
         PRINTS("\nPacking up error");
-        err = g_Vibe.packError(&packedData);
+        err = g_Vibe.packError(&bytesPacked);
         if (LumaVibe::ERROR_NONE != err) {
           g_Vibe.LOG_ERROR(err);
         }
-        err = g_Vibe.publishError(packedData, packedData);
+        err = g_Vibe.publishError(bytesPacked, bytesPacked);
         if (LumaVibe::ERROR_NONE != err) {
           g_Vibe.LOG_ERROR(err);
         } else {

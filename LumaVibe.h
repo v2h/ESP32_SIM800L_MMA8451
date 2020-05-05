@@ -75,8 +75,8 @@ class LumaVibe {
 #endif
     ERROR init(const Parameters_t *p);
     ERROR begin();
-    ERROR measure();
-    ERROR packData(uint32_t *bytesPacked);
+    ERROR measure(uint32_t *timeAtMeasure_ms);
+    ERROR packData(uint32_t timeAtMeasure_ms, uint32_t *bytesPacked);
     ERROR publishData(uint32_t bytesToPublish, uint16_t bytesPerWrite);
     void  getCommandsFromServer(MQTT_CALLBACK_SIGNATURE);
     void  restart();
@@ -139,7 +139,7 @@ class LumaVibe {
     void  initAccelerometer(void);
     void  clearMeasurementData();
     ERROR setupModem();
-    ERROR getTimestampFromNetwork(char timeStamp[21]);
+    ERROR syncTimeWithNetwork(uint32_t timeAtMeasure_ms, char timeStamp[21]);
     void  packArray(mpack_writer_t *writer, const char *entryNames[3], const uint16_t length);
     ERROR publish(char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite);
 };

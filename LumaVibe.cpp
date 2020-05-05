@@ -8,6 +8,7 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 #include "esp_attr.h"
 #include <WiFi.h>
 #include <stdlib.h> // For malloc()
+#include <time.h>
 
 #include "debug_macros.h"
 
@@ -144,7 +145,7 @@ LumaVibe::ERROR LumaVibe::begin() {
 }
 
 //
-LumaVibe::ERROR LumaVibe::measure() {
+LumaVibe::ERROR LumaVibe::measure(uint32_t *timeAtMeasure_ms) {
   clearMeasurementData();
   _accelBuffer.data = (decltype(_accelBuffer.data))malloc(_params.samplesPerMeasurement * sizeof(*(_accelBuffer.data)));
   if (NULL == _accelBuffer.data) {
@@ -152,6 +153,7 @@ LumaVibe::ERROR LumaVibe::measure() {
   }
   _accelBuffer.isBufferAllocated = true;
   uint32_t startTime = millis();
+  *timeAtMeasure_ms = startTime;
   for (uint16_t index = 0; index  < _params.samplesPerMeasurement; index++) {
     while (millis() - startTime < _params.measurementInterval_ms);
     startTime = millis();
@@ -171,7 +173,7 @@ LumaVibe::ERROR LumaVibe::measure() {
 }
 
 // 
-LumaVibe::ERROR LumaVibe::packData(uint32_t *bytesPacked) {
+LumaVibe::ERROR LumaVibe::packData(uint32_t timeAtMeasure_ms, uint32_t *bytesPacked) {
   ERROR err = setupModem();
   if (ERROR_NONE != err) {
     return err;
@@ -186,7 +188,7 @@ LumaVibe::ERROR LumaVibe::packData(uint32_t *bytesPacked) {
   mpack_writer_init(&writer, _packBuffer, PACKER_CAPACITY);
   mpack_start_map(&writer, 10);
   char timeStamp[21] = {0};
-  getTimestampFromNetwork(timeStamp);
+  syncTimeWithNetwork(timeAtMeasure_ms, timeStamp);
   // TODO: refactor this shit, from here..
   mpack_write_cstr(&writer, StringToPack.timestamp); 
   mpack_write_cstr(&writer, timeStamp);
@@ -533,25 +535,44 @@ LumaVibe::ERROR LumaVibe::setupModem() {
 }
 
 //
-LumaVibe::ERROR LumaVibe::getTimestampFromNetwork(char timeStamp[21]) {
+LumaVibe::ERROR LumaVibe::syncTimeWithNetwork(uint32_t timeAtMeasure_ms, char timeStamp[21]) {
   // TODO: handle possible error
-  int year, month, day, hour, minute, second;
-  year = month = day = hour = minute = second = 0;
+  uint32_t timeAtNetwork_ms = 0;
+  tm timeBuffer = {0};
   for (uint8_t i = 0; i < 10; i++) {
-    if (!_modem.getGsmLocationTime(&year, &month, &day, &hour, &minute, &second)) {
+    if (!_modem.getGsmLocationTime(&timeBuffer.tm_year, &timeBuffer.tm_mon, &timeBuffer.tm_mday, 
+                                   &timeBuffer.tm_hour, &timeBuffer.tm_min, &timeBuffer.tm_sec)) {
       PRINTS("\nCannot retrieve network time, defaulting to 0000-00-00T00:00:00Z");
       keepAlive();
       yield();
     }
     else {
-      PRINTS("\nNetwork time retrieved");
+      timeAtNetwork_ms = millis();
+      PRINTS("\nNetwork time retrieved: ");
+      SerialUSB.printf("%04d-%02d-%02dT%02d:%02d:%02dZ", timeBuffer.tm_year, timeBuffer.tm_mon, timeBuffer.tm_mday, 
+                                                         timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
       break;
     }
   }
-  // 2020-03-26T18:37:00Z
-  sprintf(timeStamp,"%04u-%02u-%02uT%02u:%02u:%02uZ", year, month, day, hour, minute, second);
-  PRINTS("\ntimestamp:");
-  Serial.println(String(timeStamp));
+
+  // Shift time back to where measurement was actually started
+  timeBuffer.tm_year -= 1900; // Epoch
+  time_t networkTime_s = mktime(&timeBuffer);
+  time_t time_s = networkTime_s - ((timeAtNetwork_ms - timeAtMeasure_ms) / 1000);
+  PRINT("\nEpoch time in sec: ", time_s);
+  tm shiftedTime = {0};
+  tm *ptr = localtime(&time_s);
+  if (NULL != ptr) {
+    // Fix year, because of Epoch
+    ptr->tm_year += 1900;
+    memcpy(&shiftedTime, ptr, sizeof(tm));
+  }
+
+  // Export time for further use. Format: 2020-03-26T18:37:00Z
+  sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", shiftedTime.tm_year, shiftedTime.tm_mon, shiftedTime.tm_mday, 
+                                                      shiftedTime.tm_hour, shiftedTime.tm_min, shiftedTime.tm_sec);
+  PRINTS("\ntimestamp: ");
+  SerialUSB.println(String(timeStamp));
   keepAlive();
   return ERROR_NONE;
 }
