@@ -34,6 +34,8 @@ void setup() { // takes 231 ms
   SerialUSB.print("\nMAC address: ");
   SerialUSB.println(WiFi.macAddress());
   
+  SerialUSB.print("Firmware version: ");
+  SerialUSB.println(FIRMWARE_VERSION);
   // This checks if the board wakes up from emergency-OTA
   if (g_isEmergency) {
     g_Vibe.detachAccelInterrupt();
