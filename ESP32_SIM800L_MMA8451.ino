@@ -16,7 +16,7 @@ LumaVibe g_Vibe;
 
 //
 void IRAM_ATTR accelerometerISR() {
-  PRINTS("\nAccel interrupt");
+  PRINTS("\n\nAccel interrupt\n\n");
   g_Vibe.accelInterruptFlag = true;
 }
 
