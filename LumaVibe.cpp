@@ -10,7 +10,6 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 #include <stdlib.h> // For malloc()
 
 #include "debug_macros.h"
-#include "helper_macros.h"
 
 #define PACKER_CAPACITY       40000
 #define ERROR_PACKER_CAPACITY 1000
