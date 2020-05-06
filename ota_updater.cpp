@@ -54,7 +54,7 @@ void ota_updater_begin() {
   WiFi.begin(SSID, PASSWORD);
   uint64_t currentTime_ms = millis();
   uint64_t ledTimer = millis();
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) { // This checks every 10s
+  while (WiFi.status() != WL_CONNECTED || WiFi.status() >= WL_DISCONNECTED) { 
     // Flash LED
     if (millis() - ledTimer > 400) {
       if (isLedOn) {
