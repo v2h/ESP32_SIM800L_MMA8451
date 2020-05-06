@@ -79,6 +79,8 @@ void ota_updater_begin() {
       }
       delay(1000); // (!?)
       g_Vibe.setLED(CRGB::Red);
+      gpio_hold_en((gpio_num_t)LED_PIN);
+      gpio_deep_sleep_hold_en();
       esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL); // (!?)
       esp_sleep_enable_timer_wakeup(SLEEPTIME_MINUTE_TO_uS);
       SerialUSB.println("Sleeping");
