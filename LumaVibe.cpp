@@ -597,7 +597,7 @@ void LumaVibe::packArray(mpack_writer_t *writer, const char *entryNames[3], cons
 // 
 LumaVibe::ERROR LumaVibe::publish(char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite) {
   PRINT("\nBytes to be published: ", bytesToPublish);
-  uint8_t mqttTry = 1;
+  uint8_t mqttTry = 0;
   do {
     PRINTS("\nConnecting MQTT");
     PRINT("..", mqttTry);
