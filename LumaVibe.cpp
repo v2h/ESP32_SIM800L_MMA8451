@@ -114,10 +114,9 @@ LumaVibe::ERROR LumaVibe::init(const LumaVibe::Parameters_t *p) {
   // Turn of Bluetooth and Wifi
   btStop();
   WiFi.mode(WIFI_OFF);
+  
+  initLed();
 
-  FastLED.addLeds<NEOPIXEL, LED_PIN>(_led, NUM_LEDS); // CAUTION
-  FastLED.setBrightness(30);
- 
   return ERROR_NONE;
 }
 
