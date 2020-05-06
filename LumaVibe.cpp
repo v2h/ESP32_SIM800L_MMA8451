@@ -395,6 +395,7 @@ void LumaVibe::goToSleep(void) {
   }
 #endif
   
+  disableModem();
   esp_sleep_enable_timer_wakeup(_params.sleepTime_ms * 1000);
   esp_sleep_enable_ext0_wakeup((gpio_num_t)ACCEL_PIN, LOW); //(gpio_num_t)ACCEL_PIN
   PRINTS("\nGoodnight!\n");
