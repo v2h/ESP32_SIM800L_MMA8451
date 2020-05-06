@@ -419,7 +419,7 @@ bool LumaVibe::isFirstBoot() {
 
 //
 void LumaVibe::initLed(void) {
-  gpio_hold_dis(LED_PIN);
+  gpio_hold_dis((gpio_num_t)LED_PIN);
   FastLED.addLeds<NEOPIXEL, LED_PIN>(_led, NUM_LEDS); // CAUTION
   FastLED.setBrightness(30);
 }
