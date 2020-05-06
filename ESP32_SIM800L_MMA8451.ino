@@ -164,7 +164,6 @@ void loop() {
     g_Vibe.enableAccelInterrupt();
     g_Vibe.setLED(CRGB::DarkBlue);
     FastLED.delay(1000);
-    g_Vibe.clearLED();
     g_Vibe.goToSleep();
   }
 }
