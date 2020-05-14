@@ -8,7 +8,7 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 #include "esp_attr.h"
 #include <WiFi.h>
 #include <stdlib.h> // For malloc()
-#include <time.h>
+// #include <time.h>
 
 #include "debug_macros.h"
 
@@ -36,6 +36,7 @@ uint64_t               LumaVibe::_bootCount = 0;
 LumaVibe::Parameters_t LumaVibe::_params    = {0};
 uint8_t                LumaVibe::_errorStream[ERROR_STREAM_SIZE] = {0};
 uint8_t                LumaVibe::_errorStreamWriter = 0;
+bool                   LumaVibe::_timeNeverSynced = true;
 
 // Default Initializer
 LumaVibe::LumaVibe() :
@@ -76,7 +77,7 @@ void LumaVibe::disableModem() {
   digitalWrite(MODEM_POWER_ON, LOW);
 }
 
-void LumaVibe::setModemPins() { // Private
+void LumaVibe::setModemPins() {
   pinMode(MODEM_PWKEY, OUTPUT);
   pinMode(MODEM_RST, OUTPUT);
   pinMode(MODEM_POWER_ON, OUTPUT);
@@ -103,9 +104,12 @@ LumaVibe::ERROR LumaVibe::init(const LumaVibe::Parameters_t *p) {
   PRINT("\nbootCount: ", (long)_bootCount);
   if (isFirstBoot()) {
     memcpy(&_params, p, sizeof(Parameters_t));
+    timeval rtcTime = {0, 0};
+    settimeofday(&rtcTime, NULL); // set rtc time to POSIX-zero
   }
   PRINT("\nsleepTime_ms: ", (long)_params.sleepTime_ms);
   PRINT("\nthreshold_mG: ", (int)_params.transientThreshold_mG);
+  PRINT("\nthreshold raw: ", (int)(_params.transientThreshold_mG / mG_PER_COUNT));
   PRINT("\nduration: ", _params.transientDuration);
 
   _mqtt.setServer(_params.mqttBroker, 1883);
@@ -146,7 +150,7 @@ LumaVibe::ERROR LumaVibe::begin() {
 }
 
 //
-LumaVibe::ERROR LumaVibe::measure(uint32_t *timeAtMeasure_ms) {
+LumaVibe::ERROR LumaVibe::measure(time_t *timeAtMeasure_s) {
   clearMeasurementData();
   _accelBuffer.data = (decltype(_accelBuffer.data))malloc(_params.samplesPerMeasurement * sizeof(*(_accelBuffer.data)));
   if (NULL == _accelBuffer.data) {
@@ -154,7 +158,10 @@ LumaVibe::ERROR LumaVibe::measure(uint32_t *timeAtMeasure_ms) {
   }
   _accelBuffer.isBufferAllocated = true;
   uint32_t startTime = millis();
-  *timeAtMeasure_ms = startTime;
+  struct tm now;
+  getLocalTime(&now, 0);
+  *timeAtMeasure_s = mktime(&now);
+
   for (uint16_t index = 0; index  < _params.samplesPerMeasurement; index++) {
     while (millis() - startTime < _params.measurementInterval_ms);
     startTime = millis();
@@ -174,7 +181,7 @@ LumaVibe::ERROR LumaVibe::measure(uint32_t *timeAtMeasure_ms) {
 }
 
 // 
-LumaVibe::ERROR LumaVibe::packData(uint32_t timeAtMeasure_ms, uint32_t *bytesPacked) {
+LumaVibe::ERROR LumaVibe::packData(time_t timeAtMeasure_s, uint32_t *bytesPacked) {
   ERROR err = setupModem();
   if (ERROR_NONE != err) {
     return err;
@@ -189,7 +196,7 @@ LumaVibe::ERROR LumaVibe::packData(uint32_t timeAtMeasure_ms, uint32_t *bytesPac
   mpack_writer_init(&writer, _packBuffer, PACKER_CAPACITY);
   mpack_start_map(&writer, 11);
   char timeStamp[21] = {0};
-  syncTimeWithNetwork(timeAtMeasure_ms, timeStamp);
+  syncTimeWithNetwork(timeAtMeasure_s, timeStamp);
   // TODO: refactor this shit, from here..
   mpack_write_cstr(&writer, StringToPack.timestamp); 
   mpack_write_cstr(&writer, timeStamp);
@@ -361,6 +368,7 @@ void LumaVibe::dumpSimInfo() {
 //
 void LumaVibe::setTransientThreshold(uint16_t threshold_mG) {
   _params.transientThreshold_mG = threshold_mG;
+  PRINT("\nthreshold raw: ", _params.transientThreshold_mG / mG_PER_COUNT);
   _accel.setTransientThresholdN((uint8_t)(_params.transientThreshold_mG / mG_PER_COUNT));
 }
 
@@ -541,46 +549,79 @@ LumaVibe::ERROR LumaVibe::setupModem() {
 }
 
 //
-LumaVibe::ERROR LumaVibe::syncTimeWithNetwork(uint32_t timeAtMeasure_ms, char timeStamp[21]) {
+LumaVibe::ERROR LumaVibe::syncTimeWithNetwork(time_t timeAtMeasure_s, char timeStamp[21]) {
   // TODO: handle possible error
-  uint32_t timeAtNetwork_ms = 0;
-  tm timeBuffer = {0};
-  for (uint8_t i = 0; i < 10; i++) {
-    if (!_modem.getGsmLocationTime(&timeBuffer.tm_year, &timeBuffer.tm_mon, &timeBuffer.tm_mday, 
-                                   &timeBuffer.tm_hour, &timeBuffer.tm_min, &timeBuffer.tm_sec)) {
-      PRINTS("\nCannot retrieve network time, defaulting to 0000-00-00T00:00:00Z");
-      keepAlive();
-      yield();
-    }
+  // Month of time coming from network is the actual month, month of struct tm is "months since January"
+  tm timeBuffer;
+  bool isNetWorkTimeReceived = false;
+  uint8_t syncTry = 3;
+  PRINTS("\nSyncing time with network");
+  do {
+    isNetWorkTimeReceived = _modem.getGsmLocationTime(&timeBuffer.tm_year, &timeBuffer.tm_mon, &timeBuffer.tm_mday,
+                                                      &timeBuffer.tm_hour, &timeBuffer.tm_min, &timeBuffer.tm_sec);
+    PRINTF("..success: %d", isNetWorkTimeReceived); 
+    keepAlive();
+  } while (false == isNetWorkTimeReceived && syncTry-->0);
+  
+  if (false == isNetWorkTimeReceived) {
+    // Set exported time to be zero
+    if (_timeNeverSynced) {
+      memset(&timeBuffer, 0, sizeof(timeBuffer));
+    } 
     else {
-      timeAtNetwork_ms = millis();
-      PRINTS("\nNetwork time retrieved: ");
-      PRINTF("%04d-%02d-%02dT%02d:%02d:%02dZ", timeBuffer.tm_year, timeBuffer.tm_mon, timeBuffer.tm_mday, 
-                                                         timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
-      break;
+      timeBuffer = *localtime(&timeAtMeasure_s);
+    }
+    sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", timeBuffer.tm_year + 1900, timeBuffer.tm_mon + 1, timeBuffer.tm_mday, 
+                                                        timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
+  }
+  else {
+    PRINTS("\nNetwork time retrieved: ");
+    PRINTF("%04d-%02d-%02dT%02d:%02d:%02dZ", timeBuffer.tm_year, timeBuffer.tm_mon, timeBuffer.tm_mday, 
+                                             timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
+    struct tm now;
+    getLocalTime(&now, 0);
+    time_t now_s = mktime(&now); 
+
+    timeBuffer.tm_year -= 1900; // Convert from human year to POSIX year
+    timeBuffer.tm_mon -= 1; // month of struct tm is supposed to be "months since January"
+    time_t networkTime_s = mktime(&timeBuffer); // POSIX time in sec
+    time_t time_s = networkTime_s - (now_s - timeAtMeasure_s); // POSIX time in sec at 1st measurement
+    PRINT("\nNetwork time in sec: ", networkTime_s);
+    tm shiftedTime = *localtime(&time_s);
+
+    // Export time for further use (i.e. packing). Format: 2020-03-26T18:37:00Z
+    sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", shiftedTime.tm_year + 1900, shiftedTime.tm_mon + 1, shiftedTime.tm_mday, 
+                                                        shiftedTime.tm_hour, shiftedTime.tm_min, shiftedTime.tm_sec);
+    PRINTF("\nTime at measurement: %04d-%02d-%02dT%02d:%02d:%02dZ", shiftedTime.tm_year, shiftedTime.tm_mon + 1, shiftedTime.tm_mday, 
+                                                                    shiftedTime.tm_hour, shiftedTime.tm_min, shiftedTime.tm_sec);
+    timeval rtcTime = {networkTime_s, 0}; 
+    settimeofday(&rtcTime, NULL); // Update RTC time value
+    if (_timeNeverSynced) {
+      _timeNeverSynced = false;
     }
   }
-
-  // Shift time back to where measurement was actually started
-  timeBuffer.tm_year -= 1900; // Epoch
-  time_t networkTime_s = mktime(&timeBuffer);
-  time_t time_s = networkTime_s - ((timeAtNetwork_ms - timeAtMeasure_ms) / 1000);
-  PRINT("\nEpoch time in sec: ", time_s);
-  tm shiftedTime = {0};
-  tm *ptr = localtime(&time_s);
-  if (NULL != ptr) {
-    // Fix year, because of Epoch
-    ptr->tm_year += 1900;
-    memcpy(&shiftedTime, ptr, sizeof(tm));
-  }
-
-  // Export time for further use. Format: 2020-03-26T18:37:00Z
-  sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", shiftedTime.tm_year, shiftedTime.tm_mon, shiftedTime.tm_mday, 
-                                                      shiftedTime.tm_hour, shiftedTime.tm_min, shiftedTime.tm_sec);
+  
   PRINTS("\ntimestamp: ");
   PRINTVAL(String(timeStamp));
   PRINTVAL("\n");
   keepAlive();
+  return ERROR_NONE;
+}
+
+//
+LumaVibe::ERROR LumaVibe::connectMQTT() {
+  uint8_t mqttTry = 0;
+  do {
+    PRINTS("\nConnecting MQTT");
+    PRINT("..", mqttTry);
+    _mqtt.connect("sim800l", "user", "mqtt");
+    PRINT("\nMQTT state: ", _mqtt.state()); // Should be 0
+    mqttTry++;
+    delay(1000);
+  } while (!_mqtt.connected() && mqttTry < 5);
+  if (!_mqtt.connected()) {
+    return ERROR_MQTT_NOT_CONNECTED; 
+  }
   return ERROR_NONE;
 }
 
@@ -600,17 +641,9 @@ void LumaVibe::packArray(mpack_writer_t *writer, const char *entryNames[3], cons
 // 
 LumaVibe::ERROR LumaVibe::publish(char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite) {
   PRINT("\nBytes to be published: ", bytesToPublish);
-  uint8_t mqttTry = 0;
-  do {
-    PRINTS("\nConnecting MQTT");
-    PRINT("..", mqttTry);
-    _mqtt.connect("sim800l", "user", "mqtt");
-    PRINT("\nMQTT state: ", _mqtt.state()); // Should be 0
-    mqttTry++;
-    delay(1000);
-  } while (!_mqtt.connected() && mqttTry < 5);
-  if (!_mqtt.connected()) {
-    return ERROR_MQTT_NOT_CONNECTED; 
+  ERROR err = connectMQTT();
+  if (ERROR_NONE != err) {
+    return err;
   }
   if(!_mqtt.beginPublish(publishTopic, bytesToPublish, false)) {
     return ERROR_PUBLISH_BEGIN_FAIL;
@@ -620,16 +653,15 @@ LumaVibe::ERROR LumaVibe::publish(char *publishTopic, uint32_t bytesToPublish, u
   PRINT("\nBytes Total: ", bytesToPublish);
   uint8_t *pointerToBuffer = (uint8_t *)_packBuffer;
   while (bytesToPublish) {
+    PRINT("\nBytes left: ", bytesToPublish);
     uint16_t bytesToWrite = (bytesToPublish > bytesToPublish % bytesPerWrite ? bytesPerWrite : bytesToPublish % bytesPerWrite);
     uint16_t bytesWritten = _mqtt.write(pointerToBuffer, bytesToWrite);
     bytesToPublish -= bytesWritten;
     pointerToBuffer += bytesWritten;
     _mqtt.loop();
     yield();
-    PRINT("\nBytes left: ", bytesToPublish);
-    while (MQTT_CONNECTED != _mqtt.state()) {
-      PRINTS("\nReconnecting MQTT");
-      _mqtt.connect("sim800l", "user", "mqtt");
+    if (MQTT_CONNECTED != _mqtt.state()) {
+      return ERROR_MQTT_NOT_CONNECTED;
     }
   }
   if (!_mqtt.endPublish()) {

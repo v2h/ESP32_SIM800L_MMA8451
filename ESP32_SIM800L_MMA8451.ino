@@ -12,6 +12,7 @@
 #include "debug_macros.h"
 #include "ota_updater.h"
 
+void printLocalTime(void);
 LumaVibe g_Vibe;
 
 //
@@ -93,6 +94,7 @@ void loop() {
     g_Vibe.timerInterruptFlag = false;
     g_Vibe.enableAccelInterrupt();
     PRINTS("\nFirst boot");
+    printLocalTime();
     g_Vibe.setLED(CRGB::DarkBlue);
     g_Vibe.goToSleep();
   }
@@ -105,7 +107,7 @@ void loop() {
     LumaVibe::ERROR err;
 
     g_Vibe.setLED(CRGB::Purple);
-    uint32_t timeAtMeasure; // to store the millis() in sec at the very first measurement
+    time_t timeAtMeasure;
     err = g_Vibe.measure(&timeAtMeasure);
     if (LumaVibe::ERROR_NONE != err)
       g_Vibe.LOG_ERROR(err);
@@ -218,4 +220,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   PRINT("\ntrans_threshold (mG): ", transientThreshold);
   PRINT("\ntrans_debcntr: ", transientDuration);
   PRINT("\nperiod: ", (long)period);
+}
+
+void printLocalTime(void) {
+  struct tm now;
+  getLocalTime(&now, 0); // This returns POSIX time
+  SerialUSB.printf("\nSystem time: %04d-%02d-%02dT%02d:%02d:%02dZ", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, 
+                                                       now.tm_hour, now.tm_min, now.tm_sec);
 }

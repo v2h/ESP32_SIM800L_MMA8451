@@ -75,8 +75,8 @@ class LumaVibe {
 #endif
     ERROR init(const Parameters_t *p);
     ERROR begin();
-    ERROR measure(uint32_t *timeAtMeasure_ms);
-    ERROR packData(uint32_t timeAtMeasure_ms, uint32_t *bytesPacked);
+    ERROR measure(time_t *timeAtMeasure_s);
+    ERROR packData(time_t timeAtMeasure_s, uint32_t *bytesPacked);
     ERROR publishData(uint32_t bytesToPublish, uint16_t bytesPerWrite);
     void  getCommandsFromServer(MQTT_CALLBACK_SIGNATURE);
     void  restart();
@@ -111,6 +111,7 @@ class LumaVibe {
     static RTC_DATA_ATTR uint64_t     _bootCount; // stored in RTC memory
     static RTC_DATA_ATTR uint8_t      _errorStream[ERROR_STREAM_SIZE];
     static RTC_DATA_ATTR uint8_t      _errorStreamWriter;
+    static RTC_DATA_ATTR bool         _timeNeverSynced;
     MMA8451Q       _accel;
     TinyGsm        _modem;
     TinyGsmClient  _client;
@@ -139,7 +140,8 @@ class LumaVibe {
     void  initAccelerometer(void);
     void  clearMeasurementData();
     ERROR setupModem();
-    ERROR syncTimeWithNetwork(uint32_t timeAtMeasure_ms, char timeStamp[21]);
+    ERROR syncTimeWithNetwork(time_t timeAtMeasure_s, char timeStamp[21]);
+    ERROR connectMQTT();
     void  packArray(mpack_writer_t *writer, const char *entryNames[3], const uint16_t length);
     ERROR publish(char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite);
 };
