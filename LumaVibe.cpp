@@ -28,6 +28,7 @@ static const struct {
   const char * const x_accel      = "x-accel";
   const char * const y_accel      = "y-accel";
   const char * const z_accel      = "z-accel";
+  const char * const interrupted  = "interrupted";
 } StringToPack;
 
 // Initialize static (section attributed) member variables
@@ -186,7 +187,7 @@ LumaVibe::ERROR LumaVibe::packData(uint32_t timeAtMeasure_ms, uint32_t *bytesPac
   PRINTS("\nPacking header");
   mpack_writer_t writer;
   mpack_writer_init(&writer, _packBuffer, PACKER_CAPACITY);
-  mpack_start_map(&writer, 10);
+  mpack_start_map(&writer, 11);
   char timeStamp[21] = {0};
   syncTimeWithNetwork(timeAtMeasure_ms, timeStamp);
   // TODO: refactor this shit, from here..
@@ -204,6 +205,8 @@ LumaVibe::ERROR LumaVibe::packData(uint32_t timeAtMeasure_ms, uint32_t *bytesPac
   mpack_write_u16(&writer, _params.frequency);
   mpack_write_cstr(&writer, StringToPack.numberOfMeas);
   mpack_write_u16(&writer, _params.samplesPerMeasurement);
+  mpack_write_cstr(&writer, StringToPack.interrupted);
+  mpack_write_bool(&writer, accelInterruptFlag);
 
   // ..to here
   PRINTS("\nPacking array");
