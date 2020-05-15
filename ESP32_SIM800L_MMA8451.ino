@@ -96,7 +96,6 @@ void loop() {
     PRINTS("\nFirst boot");
     printLocalTime();
     g_Vibe.setLED(CRGB::DarkBlue);
-    g_Vibe.goToSleep();
   }
   
   if (g_Vibe.accelInterruptFlag || g_Vibe.timerInterruptFlag) {
@@ -165,9 +164,8 @@ void loop() {
     g_Vibe.timerInterruptFlag = false;
     g_Vibe.enableAccelInterrupt();
     g_Vibe.setLED(CRGB::DarkBlue);
-    FastLED.delay(1000);
-    g_Vibe.goToSleep();
   }
+  g_Vibe.goToSleep();
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
