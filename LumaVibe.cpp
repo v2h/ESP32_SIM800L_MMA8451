@@ -88,6 +88,23 @@ void LumaVibe::setModemPins() {
 }
 #endif // TTGO
 
+#ifdef ZHAGA
+  void setPowerBoostKeepOn(bool en) {
+    return;
+  }
+  void LumaVibe::hardResetModem() {
+    digitalWrite(MODEM_RST, HIGH);
+    delay(200);
+    digitalWrite(MODEM_RST, LOW);
+  }
+  void LumaVibe::disableModem() {
+    return;
+  }
+  void LumaVibe::setModemPins() {
+    pinMode(MODEM_RST, OUTPUT);
+    digitalWrite(MODEM_RST, LOW);
+  }
+#endif
 //
 LumaVibe::ERROR LumaVibe::init(const LumaVibe::Parameters_t *p) {
   if (0 == p->watchDogTime_ms) {

@@ -6,8 +6,6 @@
 #include "MMA845XQ_Vibe.h"
 #include "esp32-hal-timer.h"
 
-#define TTGO
-
 #define TINY_GSM_MODEM_SIM800
 #define TINY_GSM_USE_GPRS     true
 #define TINY_GSM_USE_WIFI     false
@@ -67,12 +65,12 @@ class LumaVibe {
     volatile bool timerInterruptFlag;
 
     LumaVibe();
-#ifdef TTGO
+
     bool setPowerBoostKeepOn(bool en);
     void setModemPins();
     void hardResetModem();
     void disableModem();
-#endif
+
     ERROR init(const Parameters_t *p);
     ERROR begin();
     ERROR measure(time_t *timeAtMeasure_s);
