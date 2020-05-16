@@ -417,8 +417,10 @@ void LumaVibe::goToSleep(void) {
   delay(1000);
   
   esp_light_sleep_start();
-
+  _bootCount++;
+  timerInterruptFlag = true;
   SerialUSB.begin(115200);
+  PRINTS("Out of sleep");
   setPowerBoostKeepOn(true);
   setModemPins();
 }
