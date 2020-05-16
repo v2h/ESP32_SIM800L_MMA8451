@@ -29,6 +29,8 @@ void IRAM_ATTR watchDogISR() {
 //
 void setup() { // takes 33ms
   uint32_t setupTimer = millis();
+  g_Vibe.setPowerBoostKeepOn(true);
+  g_Vibe.setModemPins();
   SerialUSB.begin(115200);
   PRINT("\nMAC address: ", WiFi.macAddress());
   PRINT("\nFirmware version: ", FIRMWARE_VERSION);
@@ -41,8 +43,6 @@ void setup() { // takes 33ms
     ota_updater_begin();
   }
 
-  g_Vibe.setPowerBoostKeepOn(true);
-  g_Vibe.setModemPins();
 
   // For pin defines, change them in LumaVibe_globals.h
   // https://www.reddit.com/r/FastLED/comments/e4w6xh/not_usable_in_a_constant_expression/
