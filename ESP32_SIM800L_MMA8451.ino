@@ -95,7 +95,6 @@ void loop() {
   }
   
   if (g_Vibe.accelInterruptFlag || g_Vibe.timerInterruptFlag) {
-    g_Vibe.detachAccelInterrupt();
     PRINT("\naccelInterruptFlag: ", g_Vibe.accelInterruptFlag);
     PRINT("\ntimerInterruptFlag: ", g_Vibe.timerInterruptFlag);
 
