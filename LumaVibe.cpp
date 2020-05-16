@@ -130,7 +130,7 @@ LumaVibe::ERROR LumaVibe::begin() {
     initAccelerometer();
     accelInterruptFlag = false;
     timerInterruptFlag = false;
-    gpio_hold_dis((gpio_num_t)LED_PIN);
+    // gpio_hold_dis((gpio_num_t)LED_PIN);
     keepAlive();
     esp_sleep_wakeup_cause_t wakeupReason = esp_sleep_get_wakeup_cause();
     switch (wakeupReason) {
@@ -386,6 +386,7 @@ void LumaVibe::setPeriod(uint32_t period_s) {
 //
 // TODO: Handle errors in here
 void LumaVibe::goToSleep(void) {
+  clearLED();
   PRINTS("\nGoing to sleep..");
   PRINT("\nSleep time: ", (long)_params.sleepTime_ms);
   if (_modem.isGprsConnected())
@@ -407,15 +408,19 @@ void LumaVibe::goToSleep(void) {
   }
 #endif
   disableModem();
-  gpio_hold_en((gpio_num_t)LED_PIN);
-  gpio_deep_sleep_hold_en();
   esp_sleep_enable_timer_wakeup(_params.sleepTime_ms * 1000);
   esp_sleep_enable_ext0_wakeup((gpio_num_t)ACCEL_PIN, LOW); //(gpio_num_t)ACCEL_PIN
   PRINTS("\nGoodnight!\n");
   SerialUSB.flush();
-  delay(3000);
+  SerialUSB.end();
   endWatchDog();
-  esp_deep_sleep_start();
+  delay(1000);
+  
+  esp_light_sleep_start();
+
+  SerialUSB.begin(115200);
+  setPowerBoostKeepOn(true);
+  setModemPins();
 }
 
 //
@@ -430,7 +435,7 @@ bool LumaVibe::isFirstBoot() {
 
 //
 void LumaVibe::initLed(void) {
-  gpio_hold_dis((gpio_num_t)LED_PIN);
+  // gpio_hold_dis((gpio_num_t)LED_PIN);
   FastLED.addLeds<NEOPIXEL, LED_PIN>(_led, NUM_LEDS); // CAUTION
   FastLED.setBrightness(30);
 }

@@ -32,8 +32,8 @@ class LumaVibe {
       ERROR_NOT_ENOUGH_MEMORY,
       ERROR_MODEM_RESTART_FAIL,
       ERROR_MODEM_NETWORK_NOT_CONNECTED,
-      ERROR_MODEM_GPRS_NOT_CONNECTED, // not used
-      ERROR_MQTT_NOT_CONNECTED, // not used
+      ERROR_MODEM_GPRS_NOT_CONNECTED,
+      ERROR_MQTT_NOT_CONNECTED,
       ERROR_PACKING_NOT_FINISHED,
       ERROR_PUBLISH_BEGIN_FAIL,
       ERROR_PUBLISH_END_FAIL,
@@ -63,8 +63,8 @@ class LumaVibe {
       void            (*accelISR)();
     } Parameters_t;
 
-    bool accelInterruptFlag;
-    bool timerInterruptFlag;
+    volatile bool accelInterruptFlag;
+    volatile bool timerInterruptFlag;
 
     LumaVibe();
 #ifdef TTGO

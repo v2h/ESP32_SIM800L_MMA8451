@@ -16,14 +16,12 @@ void printLocalTime(void);
 LumaVibe g_Vibe;
 
 //
-void IRAM_ATTR accelerometerISR() {
-  PRINTS("\n\nAccel interrupt\n\n");
+void accelerometerISR() {
   g_Vibe.accelInterruptFlag = true;
 }
 
 //
 void IRAM_ATTR watchDogISR() {
-  PRINTS("\nRestarting\n");
   g_Vibe.hardResetModem();
   g_Vibe.restart();
 }
@@ -85,17 +83,15 @@ void setup() { // takes 33ms
 
 //
 void loop() {
-  PRINTS("\nloop");
   if (g_Vibe.isFirstBoot()) {
-    g_Vibe.detachAccelInterrupt();
-    delay(1000);
-    g_Vibe.clearAccelInterrupt();
-    g_Vibe.accelInterruptFlag = false;
-    g_Vibe.timerInterruptFlag = false;
-    g_Vibe.enableAccelInterrupt();
-    PRINTS("\nFirst boot");
-    printLocalTime();
-    g_Vibe.setLED(CRGB::DarkBlue);
+    delay(5000);
+    if (g_Vibe.accelInterruptFlag) {
+      g_Vibe.clearAccelInterrupt();
+      g_Vibe.accelInterruptFlag = false;
+      PRINTS("\nFirst boot");
+      yield();
+      g_Vibe.goToSleep();
+    }
   }
   
   if (g_Vibe.accelInterruptFlag || g_Vibe.timerInterruptFlag) {
@@ -110,7 +106,6 @@ void loop() {
     err = g_Vibe.measure(&timeAtMeasure);
     if (LumaVibe::ERROR_NONE != err)
       g_Vibe.LOG_ERROR(err);
-    //delay(10000);
     
     g_Vibe.setLED(CRGB::Aqua);
     uint32_t bytesPacked;
@@ -163,9 +158,8 @@ void loop() {
     g_Vibe.accelInterruptFlag = false;
     g_Vibe.timerInterruptFlag = false;
     g_Vibe.enableAccelInterrupt();
-    g_Vibe.setLED(CRGB::DarkBlue);
+    g_Vibe.goToSleep();
   }
-  g_Vibe.goToSleep();
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
