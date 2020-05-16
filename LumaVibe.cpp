@@ -389,38 +389,38 @@ void LumaVibe::goToSleep(void) {
   clearLED();
   PRINTS("\nGoing to sleep..");
   PRINT("\nSleep time: ", (long)_params.sleepTime_ms);
-  if (_modem.isGprsConnected())
+  if (_modem.isGprsConnected()) {
     if (_modem.gprsDisconnect()) {
       PRINTS("\nGPRS disconnected");
-  }
-  if (_modem.sleepEnable()) {
-    PRINTS("\nModem put to sleep");
+    }
   }
   if (btStop()) {
-    PRINTS("\nBluetooth stopped"); 
+    PRINTS("\nBluetooth stopped");
   }
   if (WiFi.mode(WIFI_OFF)) {
     PRINTS("\nWifi off");
   }
 #ifdef TTGO
+  if (_modem.sleepEnable()) {
+    PRINTS("\nModem put to sleep");
+  }
   if (setPowerBoostKeepOn(false)) {
     PRINTS("\nPower boost turned off");
   }
-#endif
   disableModem();
-  esp_sleep_enable_timer_wakeup(_params.sleepTime_ms * 1000);
-  esp_sleep_enable_ext0_wakeup((gpio_num_t)ACCEL_PIN, LOW); //(gpio_num_t)ACCEL_PIN
+#endif
   PRINTS("\nGoodnight!\n");
   SerialUSB.flush();
-  SerialUSB.end();
+  // SerialUSB.end(); DON'T DO THIS
   endWatchDog();
-  delay(1000);
+  esp_sleep_enable_timer_wakeup(_params.sleepTime_ms * 1000);
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)ACCEL_PIN, LOW); //(gpio_num_t)ACCEL_PIN
   
   esp_light_sleep_start();
+  detachAccelInterrupt();
   _bootCount++;
   timerInterruptFlag = true;
-  SerialUSB.begin(115200);
-  PRINTS("Out of sleep");
+  enableTimer(&_timers.watchDogTimer, WATCHDOG_TIMER_NUMBER, _params.watchDogTime_ms, _params.watchDogISR);
   setPowerBoostKeepOn(true);
   setModemPins();
 }
