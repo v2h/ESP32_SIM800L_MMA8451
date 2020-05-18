@@ -89,8 +89,8 @@ void LumaVibe::setModemPins() {
 #endif // TTGO
 
 #ifdef ZHAGA
-  void setPowerBoostKeepOn(bool en) {
-    return;
+  bool LumaVibe::setPowerBoostKeepOn(bool en) {
+    return true;
   }
   void LumaVibe::hardResetModem() {
     digitalWrite(MODEM_RST, HIGH);
