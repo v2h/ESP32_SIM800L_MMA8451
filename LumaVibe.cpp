@@ -551,7 +551,7 @@ LumaVibe::ERROR LumaVibe::setupModem() {
     return ERROR_MODEM_RESTART_FAIL;
   String modemInfo = _modem.getModemInfo();
   PRINT("\nmodem info: ", modemInfo);
-  dumpSimInfo();
+  //dumpSimInfo();
   keepAlive();
   PRINTS("\nwaiting for network...");
   if (!_modem.waitForNetwork(30000L))

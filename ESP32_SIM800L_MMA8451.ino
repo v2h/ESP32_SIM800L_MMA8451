@@ -51,8 +51,8 @@ void setup() { // takes 33ms
   // For pin defines, change them in LumaVibe_globals.h
   // https://www.reddit.com/r/FastLED/comments/e4w6xh/not_usable_in_a_constant_expression/
   const LumaVibe::Parameters_t params = {
-    "LV020_000000B",            // moduleID
-    "LumaVibe 2.0",             // moduleType
+    "SV010_000000",            // moduleID
+    "Solar Vibe 1.0",           // moduleType
     "mastap.net",               // mqttBroker
     "ngd/demo/XXX/data",    // publishDataTopic
     "ngd/demo/XXX/error", // publishErrorTopic
