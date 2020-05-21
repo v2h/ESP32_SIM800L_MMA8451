@@ -99,6 +99,7 @@ void loop() {
   }
   
   if (g_Vibe.accelInterruptFlag || g_Vibe.timerInterruptFlag) {
+    uint64_t start = millis();
     PRINT("\naccelInterruptFlag: ", g_Vibe.accelInterruptFlag);
     PRINT("\ntimerInterruptFlag: ", g_Vibe.timerInterruptFlag);
 
