@@ -101,13 +101,13 @@ void LumaVibe::setModemPins() {
     return;
   }
   void LumaVibe::setModemPins() {
-    pinMode(MODEM_RST, OUTPUT);
-    digitalWrite(MODEM_RST, LOW);
+    return;
   }
 #endif
+
 //
 LumaVibe::ERROR LumaVibe::init(const LumaVibe::Parameters_t *p) {
-  if (0 == p->watchDogTime_ms) {
+  if (0 == p->sleepTime_ms || 0 == p->watchDogTime_ms) {
     return ERROR_TIME_ZERO;
   }
   if (0 == p->frequency) {
@@ -435,6 +435,7 @@ void LumaVibe::goToSleep(void) {
   
   esp_light_sleep_start();
   detachAccelInterrupt();
+  clearAccelInterrupt();
   _bootCount++;
   timerInterruptFlag = true;
   enableTimer(&_timers.watchDogTimer, WATCHDOG_TIMER_NUMBER, _params.watchDogTime_ms, _params.watchDogISR);
@@ -543,7 +544,9 @@ void LumaVibe::clearMeasurementData() {
 //
 LumaVibe::ERROR LumaVibe::setupModem() {
   PRINTS("\nSetting up modem");
+#ifndef ZHAGA
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
+#endif
   if (!_modem.restart())
     return ERROR_MODEM_RESTART_FAIL;
   String modemInfo = _modem.getModemInfo();
@@ -563,6 +566,7 @@ LumaVibe::ERROR LumaVibe::setupModem() {
     _modem.gprsConnect("", "", "");
     delay(1000);
     gprsTry++;
+    keepAlive();
   } while (!_modem.isGprsConnected() && gprsTry < 5); // ATTENTION: WHILE LOOP!!
   if (!_modem.isGprsConnected()) {
     return ERROR_MODEM_GPRS_NOT_CONNECTED;
@@ -641,7 +645,7 @@ LumaVibe::ERROR LumaVibe::connectMQTT() {
     _mqtt.connect("sim800l", "user", "mqtt");
     PRINT("\nMQTT state: ", _mqtt.state()); // Should be 0
     mqttTry++;
-    delay(1000);
+    keepAlive();
   } while (!_mqtt.connected() && mqttTry < 5);
   if (!_mqtt.connected()) {
     return ERROR_MQTT_NOT_CONNECTED; 

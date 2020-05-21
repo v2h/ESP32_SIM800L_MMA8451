@@ -16,7 +16,7 @@ void printLocalTime(void);
 LumaVibe g_Vibe;
 
 //
-void accelerometerISR() {
+void IRAM_ATTR accelerometerISR() {
   g_Vibe.accelInterruptFlag = true;
 }
 
@@ -31,9 +31,12 @@ void setup() { // takes 33ms
   uint32_t setupTimer = millis();
   g_Vibe.setPowerBoostKeepOn(true);
   g_Vibe.setModemPins();
+#ifdef ZHAGA
+  SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
+#endif
   SerialUSB.begin(115200);
-  PRINT("\nMAC address: ", WiFi.macAddress());
-  PRINT("\nFirmware version: ", FIRMWARE_VERSION);
+  printf("\nMAC address: ", WiFi.macAddress());
+  printf("\nFirmware version: ", FIRMWARE_VERSION);
 
   // This checks if the board wakes up from emergency-OTA
   if (g_isEmergency) {
@@ -43,26 +46,25 @@ void setup() { // takes 33ms
     ota_updater_begin();
   }
 
-
   // For pin defines, change them in LumaVibe_globals.h
   // https://www.reddit.com/r/FastLED/comments/e4w6xh/not_usable_in_a_constant_expression/
   const LumaVibe::Parameters_t params = {
     "LV020_000000B",            // moduleID
     "LumaVibe 2.0",             // moduleType
     "mastap.net",               // mqttBroker
-    "ngd/demo/HSRW_Balcony/data",    // publishDataTopic
-    "ngd/demo/HSRW_Balcony/error", // publishErrorTopic
-    "ngd/demo/HSRW_Balcony/command", // subscribeTopic
+    "ngd/demo/XXX/data",    // publishDataTopic
+    "ngd/demo/XXX/error", // publishErrorTopic
+    "ngd/demo/XXX/command", // subscribeTopic
     "int16",                    // format
     2,                          // msgType
     200,                        // frequency
     2048,                       // samplesPerMeasurement
     5,                          // measurementInterval_ms
     MMA8451Q::RANGE_4G,         // accelerationRange
-    30*60000,                   // sleepTime_ms
+    60*60000,                   // sleepTime_ms
     60000,                      // watchDogTime_ms
-    100,                        // transientThreshold in mG
-    10,                         // transientDuration
+    68,                        // transientThreshold in mG
+    3,                         // transientDuration
     &watchDogISR,
     &accelerometerISR
   };
@@ -150,9 +152,9 @@ void loop() {
         }
       }
     }
+    SerialUSB.printf("\nTime elapsed: %llu sec", (millis() - start)/1000);
 
-    g_Vibe.flashLED(CRGB::Green, 400, 5, false);
-  
+    g_Vibe.flashLED(CRGB::Green, 200, 3, false);
     g_Vibe.clearAccelInterrupt();
     g_Vibe.accelInterruptFlag = false;
     g_Vibe.timerInterruptFlag = false;

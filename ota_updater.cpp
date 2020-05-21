@@ -10,8 +10,8 @@
 #define TIMEOUT_MINUTE_TO_MS (1 * 60 * 1000)
 #define SLEEPTIME_MINUTE_TO_uS (2 * 60 * 1000000)
 
-#define SSID "UPC2597763"
-#define PASSWORD "PCJNSGCF"
+#define SSID "SVESPSERVICE"
+#define PASSWORD "2JbTC9sCRkSnRKCm"
 
 // Declared in LumaVibe_globals.h, defined in main file
 bool RTC_DATA_ATTR g_isEmergency;
