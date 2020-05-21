@@ -163,6 +163,7 @@ void loop() {
     g_Vibe.enableAccelInterrupt();
     g_Vibe.goToSleep();
   }
+  yield();
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
