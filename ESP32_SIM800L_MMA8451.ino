@@ -35,8 +35,10 @@ void setup() { // takes 33ms
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
 #endif
   SerialUSB.begin(115200);
-  printf("\nMAC address: ", WiFi.macAddress());
-  printf("\nFirmware version: ", FIRMWARE_VERSION);
+  SerialUSB.print("\nMAC address: ");
+  SerialUSB.println(WiFi.macAddress());
+  SerialUSB.print("\nFirmware version: ");
+  SerialUSB.println(FIRMWARE_VERSION);
 
   // This checks if the board wakes up from emergency-OTA
   if (g_isEmergency) {
