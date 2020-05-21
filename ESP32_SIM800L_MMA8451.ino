@@ -108,22 +108,26 @@ void loop() {
     g_Vibe.setLED(CRGB::Purple);
     time_t timeAtMeasure;
     err = g_Vibe.measure(&timeAtMeasure);
+    yield();
     if (LumaVibe::ERROR_NONE != err)
       g_Vibe.LOG_ERROR(err);
     
     g_Vibe.setLED(CRGB::Aqua);
     uint32_t bytesPacked;
     err = g_Vibe.packData(timeAtMeasure, &bytesPacked);
+    yield();
     if (LumaVibe::ERROR_NONE != err)
       g_Vibe.LOG_ERROR(err);
     PRINT("\nPacked Bytes: ", bytesPacked);
 
     g_Vibe.setLED(CRGB::Green);
     err = g_Vibe.publishData(bytesPacked, 512);
+    yield();
     if (LumaVibe::ERROR_NONE != err)
       g_Vibe.LOG_ERROR(err);
     
     g_Vibe.getCommandsFromServer(mqttCallback);
+    yield();
 
     PRINT("\nError Count: ", g_Vibe.countError());
     // Handle errors here

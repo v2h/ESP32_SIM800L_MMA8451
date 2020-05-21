@@ -191,6 +191,7 @@ LumaVibe::ERROR LumaVibe::measure(time_t *timeAtMeasure_s) {
       PRINT("\nIndex: ", index);
       PRINT(" at: ", startTime);
     }
+    yield();
   }
   PRINT("\nStop time: ", millis());
   keepAlive();
@@ -434,6 +435,7 @@ void LumaVibe::goToSleep(void) {
   esp_sleep_enable_ext0_wakeup((gpio_num_t)ACCEL_PIN, LOW); //(gpio_num_t)ACCEL_PIN
   
   esp_light_sleep_start();
+  yield();
   detachAccelInterrupt();
   clearAccelInterrupt();
   _bootCount++;
