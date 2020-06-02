@@ -117,7 +117,7 @@ esp_err_t MMA8451_setTransientThresholdCounts(MMA8451_t * const mma, uint8_t thr
 
 esp_err_t MMA8451_setTransientThreshold_mG(MMA8451_t * const mma, uint16_t threshold_mG) {
     if (threshold_mG > TRANS_THS_MAX_mG) threshold_mG = TRANS_THS_MAX_mG;
-    uint8_t thresholdCount = (uint8_t)threshold_mG / TRANS_THS_mG_per_COUNT;
+    uint8_t thresholdCount = (uint8_t)(threshold_mG / TRANS_THS_mG_per_COUNT);
     esp_err_t err = MMA8451_I2C_writeReg8(mma->i2cAddress, MMA8451_REG_TRANSIENT_THS, &thresholdCount, 1);
     if (ESP_OK == err)
         mma->params.transientThresholdCount = thresholdCount;
