@@ -60,11 +60,11 @@ void ota_updater_begin() {
     if (millis() - ledTimer > 400) {
       if (isLedOn) {
         isLedOn = false;
-        g_Vibe.clearLED();
+        LumaVibe_clearLED();
       }
       else {
         isLedOn = true;
-        g_Vibe.setLED(CRGB::Red);
+        LumaVibe_setLED(CRGB::Red);
       }
       ledTimer = millis();
     }
@@ -79,7 +79,7 @@ void ota_updater_begin() {
         SerialUSB.println("Wifi off");
       }
       delay(1000); // (!?)
-      g_Vibe.setLED(CRGB::Red);
+      LumaVibe_setLED(CRGB::Red);
       gpio_hold_en((gpio_num_t)LED_PIN);
       gpio_deep_sleep_hold_en();
       esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL); // (!?)
@@ -105,7 +105,7 @@ void ota_updater_begin() {
   // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
   // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
 
-  g_Vibe.setLED(CRGB::Green);
+  LumaVibe_setLED(CRGB::Green);
 
   ArduinoOTA.begin();
 

@@ -3,8 +3,8 @@
 
 #include <Arduino.h>
 #include "LumaVibe_globals.h"
-#include "MMA845XQ_Vibe.h"
 #include "esp32-hal-timer.h"
+#include "custom_src\bsp\mma8451.h"
 
 #define TINY_GSM_MODEM_SIM800
 #define TINY_GSM_USE_GPRS     true
@@ -17,137 +17,83 @@
 
 // Marcro for handdling errors
 #if LUMAVIBE_ENABLE_ERROR_LOGGING
-#define LOG_ERROR(e) logError(e, __LINE__)
+#define LumaVibe_LOG_ERROR(e) LumaVibe_logError(e, __LINE__)
 #endif // LUMAVIBE_ENABLE_HANDLING_ENABLE
 
-class LumaVibe {
-  public: 
-    enum ERROR {
-      ERROR_NONE = 0,
-      ERROR_TIME_ZERO,
-      ERROR_FREQUENCY_ZERO,
-      ERROR_TIMER_NULL,
-      ERROR_NOT_ENOUGH_MEMORY,
-      ERROR_MODEM_RESTART_FAIL,
-      ERROR_MODEM_NETWORK_NOT_CONNECTED,
-      ERROR_MODEM_GPRS_NOT_CONNECTED,
-      ERROR_MQTT_NOT_CONNECTED,
-      ERROR_PACKING_NOT_FINISHED,
-      ERROR_PUBLISH_BEGIN_FAIL,
-      ERROR_PUBLISH_END_FAIL,
-      ERROR_SENSOR_INIT, // not used
-      ERROR_MAX
-    };
+typedef enum {
+    LUMAVIBE_ERROR_NONE = 0,
+    LUMAVIBE_ERROR_TIME_ZERO,
+    LUMAVIBE_ERROR_FREQUENCY,
+    LUMAVIBE_ERROR_TIMER_NULL,
+    LUMAVIBE_ERROR_NOT_ENOUGH_MEMORY,
+    LUMAVIBE_ERROR_MODEM_RESTART_FAIL,
+    LUMAVIBE_ERROR_MODEM_NETWORK_NOT_CONNECTED,
+    LUMAVIBE_ERROR_MODEM_GPRS_NOT_CONNECTED,
+    LUMAVIBE_ERROR_MQTT_NOT_CONNECTED,
+    LUMAVIBE_ERROR_PACKING_NOT_FINISHED,
+    LUMAVIBE_ERROR_PUBLISH_BEGIN_FAIL,
+    LUMAVIBE_ERROR_PUBLISH_END_FAIL,
+    LUMAVIBE_ERROR_SENSOR_INIT,
+    LUMAVIBE_ERROR_SENSOR_SETTING,
+    LUMAVIBE_ERROR_MAX
+} LumaVibe_Error_t;
 
-    typedef struct {
-      char            moduleID[20];
-      char            moduleType[20];
-      char            mqttBroker[20];
-      char            publishDataTopic[40];
-      char            publishErrorTopic[40];
-      char            subscribeTopic[40];
-      char            format[10]; // always set to "Int16" for now, remove completely later? any use?
-      uint8_t         msgType;
-      uint16_t        frequency; // What should frequency actually mean?
-      uint16_t        samplesPerMeasurement;
-      uint16_t        measurementInterval_ms;
-      MMA8451Q::RANGE accelerationRange;
+typedef struct {
+  uint8_t  accelSCL;
+  uint8_t  accelSDA;
+  uint8_t  accelAddress;
+  uint8_t  accelInterruptPin;
+  uint16_t numberOfMeas;
+  uint16_t measureFrequency;
+  uint64_t sleepTime_ms;
+  uint64_t watchDogTime_ms;
+  char     mqttBroker[20];
+  char     mqttUserName[10];
+  char     mqttPassword[10];
+  char     firmwareVersion[20];
+  char     moduleID[16];
+  char     moduleType[16];
+  uint8_t  msgType;
+  char     format[8];
+} LumaVibe_Settings_t;
 
-      uint64_t        sleepTime_ms;
-      uint64_t        watchDogTime_ms;
-      uint16_t        transientThreshold_mG;
-      uint16_t        transientDuration;
-      void            (*watchDogISR)();
-      void            (*accelISR)();
-    } Parameters_t;
+bool LumaVibe_setPowerBoostKeepOn(bool en);
+void LumaVibe_hardResetModem();
+void LumaVibe_disableModem();
+void LumaVibe_enableModem();
 
-    volatile bool accelInterruptFlag;
-    volatile bool timerInterruptFlag;
-
-    LumaVibe();
-
-    bool setPowerBoostKeepOn(bool en);
-    void setModemPins();
-    void hardResetModem();
-    void disableModem();
-
-    ERROR init(const Parameters_t *p);
-    ERROR begin();
-    ERROR measure(time_t *timeAtMeasure_s);
-    ERROR packData(time_t timeAtMeasure_s, uint32_t *bytesPacked);
-    ERROR publishData(uint32_t bytesToPublish, uint16_t bytesPerWrite);
-    void  getCommandsFromServer(MQTT_CALLBACK_SIGNATURE);
-    void  restart();
-    void  logError(ERROR error, uint16_t line);
-    uint8_t countNetworkError(void);
-    ERROR packError(uint32_t *bytesPacked);
-    ERROR publishError(uint32_t bytesToPublish, uint16_t bytesPerWrite);
-    void  clearError(void);
-    uint8_t countError(void);
-    void  readSingle(int16_t *xi, int16_t *yi, int16_t *zi);
-    void  detachAccelInterrupt();
-    void  clearAccelInterrupt();
-    void  enableAccelInterrupt();
-    void  dumpSimInfo();
-
-    void endWatchDog();
-
-    void setTransientThreshold(uint16_t threshold_mG);
-    void setTransientDuration(uint16_t duration);
-    void setPeriod(uint32_t period_s);
-    void goToSleep(void);
-    bool isFirstBoot();
-    void initLed(void);
-    void setLED(CRGB::HTMLColorCode color);
-    void clearLED();
-    void flashLED(CRGB::HTMLColorCode color, uint16_t duration_ms, uint8_t numberOfTimes, bool retainColor);
-
-#if (!LUMAVIBE_PUBLIC_ALL)
-  private: 
-#endif
-    static RTC_DATA_ATTR Parameters_t _params; // stored in RTC memory
-    static RTC_DATA_ATTR uint64_t     _bootCount; // stored in RTC memory
-    static RTC_DATA_ATTR uint8_t      _errorStream[ERROR_STREAM_SIZE];
-    static RTC_DATA_ATTR uint8_t      _errorStreamWriter;
-    static RTC_DATA_ATTR bool         _timeNeverSynced;
-    MMA8451Q       _accel;
-    TinyGsm        _modem;
-    TinyGsmClient  _client;
-    PubSubClient   _mqtt;
-    char           *_packBuffer;
-    CRGB           _led[NUM_LEDS];
-
-    struct {
-      union {
-        int16_t v[3];
-        struct {
-          int16_t xi;
-          int16_t yi;
-          int16_t zi;
-        };
-      } *data;
-      bool isBufferAllocated;
-    } _accelBuffer;
-
-    struct {
-    hw_timer_t *watchDogTimer;
-    hw_timer_t *sleepTimer;
-    } _timers;
-    ERROR enableTimer(hw_timer_t **timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)());
-    void  keepAlive();
-    void  initAccelerometer(void);
-    void  clearMeasurementData();
-    ERROR setupModem();
-    ERROR syncTimeWithNetwork(time_t timeAtMeasure_s, char timeStamp[21]);
-    ERROR connectMQTT();
-    void  packArray(mpack_writer_t *writer, const char *entryNames[3], const uint16_t length);
-    ERROR publish(char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite);
-};
+LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s);
+LumaVibe_Error_t LumaVibe_begin();
+LumaVibe_Error_t LumaVibe_measure(time_t *timeAtMeasure_s);
+LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked);
+LumaVibe_Error_t LumaVibe_publishData(const char *publishDataTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite);
+void LumaVibe_getCommandsFromServer(const char *subscribeTopic);
+void LumaVibe_clearAccelInterrupt();
+void LumaVibe_restart();
+void LumaVibe_logError(LumaVibe_Error_t error, uint16_t line);
+uint8_t LumaVibe_countNetworkError(void);
+LumaVibe_Error_t LumaVibe_packError(uint32_t *bytesPacked);
+LumaVibe_Error_t LumaVibe_publishError(const char *publishErrorTopic, int32_t bytesToPublish, uint16_t bytesPerWrite);
+uint8_t LumaVibe_countError(void);
+void LumaVibe_clearError(void);
+void LumaVibe_detachAccelInterrupt();
+void LumaVibe_enableAccelInterrupt();
+void LumaVibe_setTransientThreshold_mG(uint16_t threshold_mG);
+void LumaVibe_settransientDebounceCounter(uint16_t duration);
+void LumaVibe_setPeriod(uint32_t period_s);
+void LumaVibe_goToSleep(void);
+void LumaVibe_endWatchDog();
+void LumaVibe_setLED(CRGB::HTMLColorCode color);
+void LumaVibe_clearLED();
+void LumaVibe_flashLED(CRGB::HTMLColorCode color, uint16_t duration_ms, uint8_t numberOfTimes, bool retainColor);
 
 // Must be first defined in the main file
 // Declared with 'extern' so other files can use..
 // ..whenever this header is included
-extern LumaVibe g_Vibe;
 extern bool g_isEmergency;
+extern volatile bool g_accelInterruptFlag;
+extern volatile bool g_timerInterruptFlag;
+extern RTC_DATA_ATTR uint64_t g_bootCount;
 
 #endif //LUMAVIBE_H
+

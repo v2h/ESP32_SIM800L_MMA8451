@@ -4,6 +4,9 @@
 
 // https://github.com/Xinyuan-LilyGO/TTGO-T-Call
 // https://pubsubclient.knolleary.net/api.html for pubsubclient
+// RTC_DATA_ATTR and RTC_RODATA_ATTR are placed in..
+// ..the RTC fast memory segment otherwise it goes to RTC slow memory (default option)..
+// .. see https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/deep-sleep-stub.html
 
 #include "esp_attr.h"
 #include <WiFi.h>
@@ -13,24 +16,11 @@
 #include "ota_updater.h"
 
 void printLocalTime(void);
-LumaVibe g_Vibe;
 
-//
-void IRAM_ATTR accelerometerISR() {
-  g_Vibe.accelInterruptFlag = true;
-}
-
-//
-void IRAM_ATTR watchDogISR() {
-  g_Vibe.hardResetModem();
-  g_Vibe.restart();
-}
-
-//
 void setup() { // takes 33ms
   uint32_t setupTimer = millis();
-  g_Vibe.setPowerBoostKeepOn(true);
-  g_Vibe.setModemPins();
+  LumaVibe_setPowerBoostKeepOn(true);
+  LumaVibe_enableModem();
 #ifdef ZHAGA
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
 #endif
@@ -42,44 +32,43 @@ void setup() { // takes 33ms
 
   // This checks if the board wakes up from emergency-OTA
   if (g_isEmergency) {
-    g_Vibe.detachAccelInterrupt();
-    g_Vibe.initLed();
+    LumaVibe_detachAccelInterrupt();
     PRINTS("\nRe-entering emergency mode");
     ota_updater_begin();
   }
 
   // For pin defines, change them in LumaVibe_globals.h
   // https://www.reddit.com/r/FastLED/comments/e4w6xh/not_usable_in_a_constant_expression/
-  const LumaVibe::Parameters_t params = {
-    "SV010_000000",            // moduleID
-    "Solar Vibe 1.0",           // moduleType
-    "mastap.net",               // mqttBroker
-    "ngd/demo/XXX/data",    // publishDataTopic
-    "ngd/demo/XXX/error", // publishErrorTopic
-    "ngd/demo/XXX/command", // subscribeTopic
-    "int16",                    // format
-    2,                          // msgType
-    200,                        // frequency
-    2048,                       // samplesPerMeasurement
-    5,                          // measurementInterval_ms
-    MMA8451Q::RANGE_4G,         // accelerationRange
-    60*60000,                   // sleepTime_ms
-    60000,                      // watchDogTime_ms
-    68,                        // transientThreshold in mG
-    3,                         // transientDuration
-    &watchDogISR,
-    &accelerometerISR
+  LumaVibe_Settings_t settings = {
+    /*accelSCL*/              ACCEL_SCL_PIN,
+    /*accelSDA*/              ACCEL_SDA_PIN,
+    /*accelAddress*/          MMA8451_DEFAULT_ADDRESS_A0_HIGH,
+    /*accelInterruptPin*/     ACCEL_INTERRUPT_PIN,
+    /*numberOfMeas*/          2048,
+    /*measureFrequency*/      200,
+    /*sleepTime_ms*/          60000*10,
+    /*watchDogTime_ms*/       60000,  
+    /*mqttBroker[20]*/        "mastap.net",
+    /*mqttUserName[10]*/      "user",
+    /*mqttPassword[10]*/      "mqtt",
+    /*firmwareVersion[20]*/   FIRMWARE_VERSION,
+    /*moduleID[13]*/          "SV010_000000",
+    /*moduleType[16]*/        "Solar Vibe 1.1",
+    /*msgType*/               2,
+    /*format[5]*/             "int16"
   };
 
-  LumaVibe::ERROR err; 
-  err = g_Vibe.init(&params);
-  if (LumaVibe::ERROR_NONE != err)
-    g_Vibe.LOG_ERROR(err);
-  g_Vibe.setLED(CRGB::Yellow);
+  LumaVibe_Error_t err; 
+  err = LumaVibe_init(&settings);
+  if (LUMAVIBE_ERROR_NONE != err)
+    LumaVibe_LOG_ERROR(err);
+  LumaVibe_setLED(CRGB::Yellow);
+  yield();
 
-  err = g_Vibe.begin();
-  if (LumaVibe::ERROR_NONE != err)
-    g_Vibe.LOG_ERROR(err);
+  err = LumaVibe_begin();
+  if (LUMAVIBE_ERROR_NONE != err)
+    LumaVibe_LOG_ERROR(err);
+  yield();
 
   PRINTF("\nSetup took %lu ms", millis() - setupTimer);
   PRINTS("\nEnd of setup()\n");
@@ -87,140 +76,101 @@ void setup() { // takes 33ms
 
 //
 void loop() {
-  if (g_Vibe.isFirstBoot()) {
-    delay(5000);
-    if (g_Vibe.accelInterruptFlag) {
-      g_Vibe.clearAccelInterrupt();
-      g_Vibe.accelInterruptFlag = false;
+  // PRINTS("\nloop");
+  if (1 == g_bootCount) {
+    // delay(5000);
+    if (g_accelInterruptFlag) {
+      LumaVibe_clearAccelInterrupt();
+      g_accelInterruptFlag = false;
       PRINTS("\nFirst boot");
       yield();
-      g_Vibe.goToSleep();
+      LumaVibe_goToSleep();
     }
   }
   
-  if (g_Vibe.accelInterruptFlag || g_Vibe.timerInterruptFlag) {
+  if (g_accelInterruptFlag || g_timerInterruptFlag) {
     uint64_t start = millis();
-    PRINT("\naccelInterruptFlag: ", g_Vibe.accelInterruptFlag);
-    PRINT("\ntimerInterruptFlag: ", g_Vibe.timerInterruptFlag);
+    // PRINT("\naccelInterruptFlag: ", g_accelInterruptFlag);
+    // PRINT("\ntimerInterruptFlag: ", g_timerInterruptFlag);
 
-    LumaVibe::ERROR err;
+    LumaVibe_Error_t err;
 
-    g_Vibe.setLED(CRGB::Purple);
+    LumaVibe_setLED(CRGB::Purple);
     time_t timeAtMeasure;
-    err = g_Vibe.measure(&timeAtMeasure);
+    err = LumaVibe_measure(&timeAtMeasure);
     yield();
-    if (LumaVibe::ERROR_NONE != err)
-      g_Vibe.LOG_ERROR(err);
+    if (LUMAVIBE_ERROR_NONE != err)
+      LumaVibe_LOG_ERROR(err);
     
-    g_Vibe.setLED(CRGB::Aqua);
+    LumaVibe_setLED(CRGB::Aqua);
     uint32_t bytesPacked;
-    err = g_Vibe.packData(timeAtMeasure, &bytesPacked);
+    err = LumaVibe_packData(timeAtMeasure, &bytesPacked);
     yield();
-    if (LumaVibe::ERROR_NONE != err)
-      g_Vibe.LOG_ERROR(err);
+    if (LUMAVIBE_ERROR_NONE != err)
+      LumaVibe_LOG_ERROR(err);
     PRINT("\nPacked Bytes: ", bytesPacked);
 
-    g_Vibe.setLED(CRGB::Green);
-    err = g_Vibe.publishData(bytesPacked, 512);
+    LumaVibe_setLED(CRGB::Green);
+    err = LumaVibe_publishData("ngd/demo/HSRW_Hung/data", bytesPacked, 512);
     yield();
-    if (LumaVibe::ERROR_NONE != err)
-      g_Vibe.LOG_ERROR(err);
+    if (LUMAVIBE_ERROR_NONE != err)
+      LumaVibe_LOG_ERROR(err);
     
-    g_Vibe.getCommandsFromServer(mqttCallback);
+    LumaVibe_getCommandsFromServer("ngd/demo/HSRW_Hung/command");
     yield();
 
-    PRINT("\nError Count: ", g_Vibe.countError());
+    /*
+    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_PUBLISH_BEGIN_FAIL;
+    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_SENSOR_INIT;
+    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_MODEM_GPRS_NOT_CONNECTED;
+    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_MODEM_GPRS_NOT_CONNECTED;
+    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_MODEM_GPRS_NOT_CONNECTED;
+    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_MODEM_GPRS_NOT_CONNECTED;
+    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_MODEM_GPRS_NOT_CONNECTED;
+    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_MODEM_GPRS_NOT_CONNECTED;
+    */
+    printLocalTime();
+
+    PRINT("\nError Count: ", LumaVibe_countError());
     // Handle errors here
-    if (0 != g_Vibe.countError()) {
+    if (0 != LumaVibe_countError()) {
       PRINTS("\nThere is error");
-      if (g_Vibe.countNetworkError() >= MAX_NETWORK_ERROR_COUNT || g_Vibe.countError() >= MAX_ERROR_COUNT) {
+      if (LumaVibe_countNetworkError() >= MAX_NETWORK_ERROR_COUNT || LumaVibe_countError() >= MAX_ERROR_COUNT) {
         // Jump to emergency-OTA
-        g_Vibe.endWatchDog();
-        g_Vibe.disableModem();
-        g_Vibe.setPowerBoostKeepOn(false);
-        g_Vibe.setLED(CRGB::Red);
+        LumaVibe_endWatchDog();
+        LumaVibe_disableModem();
+        LumaVibe_setPowerBoostKeepOn(false);
+        LumaVibe_setLED(CRGB::Red);
         ota_updater_begin();
       }
       else { // Publish list of (not so critical) errors
         uint32_t bytesPacked;
-        LumaVibe::ERROR err;
+        LumaVibe_Error_t err;
         //bytesPacked = 0;
         PRINTS("\nPacking up error");
-        err = g_Vibe.packError(&bytesPacked);
-        if (LumaVibe::ERROR_NONE != err) {
-          g_Vibe.LOG_ERROR(err);
+        err = LumaVibe_packError(&bytesPacked);
+        if (LUMAVIBE_ERROR_NONE != err) {
+          LumaVibe_LOG_ERROR(err);
         }
-        err = g_Vibe.publishError(bytesPacked, bytesPacked);
-        if (LumaVibe::ERROR_NONE != err) {
-          g_Vibe.LOG_ERROR(err);
+        err = LumaVibe_publishError("ngd/demo/HSRW_Hung/error", bytesPacked, bytesPacked);
+        if (LUMAVIBE_ERROR_NONE != err) {
+          LumaVibe_LOG_ERROR(err);
         } else {
-          g_Vibe.clearError();
+          LumaVibe_clearError();
           PRINTS("\nErrors cleared");
         }
       }
     }
     SerialUSB.printf("\nTime elapsed: %llu sec", (millis() - start)/1000);
 
-    g_Vibe.flashLED(CRGB::Green, 200, 3, false);
-    g_Vibe.clearAccelInterrupt();
-    g_Vibe.accelInterruptFlag = false;
-    g_Vibe.timerInterruptFlag = false;
-    g_Vibe.enableAccelInterrupt();
-    g_Vibe.goToSleep();
+    LumaVibe_flashLED(CRGB::Green, 200, 3, false);
+    LumaVibe_clearAccelInterrupt();
+    g_accelInterruptFlag = false;
+    g_timerInterruptFlag = false;
+    LumaVibe_enableAccelInterrupt();
+    LumaVibe_goToSleep();
   }
-  yield();
-}
-
-void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  PRINTS("\nMessage arrived\n");
-  PRINTVAL(topic);
-  PRINTVAL("\n");
-  for (int i = 0; i < length; i++) {
-    PRINTVAL((char)payload[i]);
-  }
-  PRINTVAL("\n");
-  mpack_reader_t reader;
-  mpack_reader_init_data(&reader, (char *)payload, length);
-  uint8_t count = mpack_expect_map_range(&reader, 3, 8);
-  PRINTS("\nNumber of fields: "); PRINTVAL(count);
-
-  mpack_expect_cstr_match(&reader, "sender");
-  char sender[15];
-  mpack_expect_cstr(&reader, sender, 15);
-
-  mpack_expect_cstr_match(&reader, "trans_threshold");
-  uint16_t transientThreshold;
-  transientThreshold = mpack_expect_u16(&reader);
-
-  mpack_expect_cstr_match(&reader, "trans_debcntr");
-  uint16_t transientDuration;
-  transientDuration = mpack_expect_u16(&reader);
-
-  /*
-    mpack_expect_cstr_match(&reader, "deadtime");
-    uint16_t deadtime;
-    deadtime = mpack_expect_u16(&reader);
-  */
-  mpack_expect_cstr_match(&reader, "period");
-  uint64_t period;
-  period = mpack_expect_u16(&reader);
-
-
-  mpack_expect_cstr_match(&reader, "_msgid");
-  char _msgid[20];
-  mpack_expect_cstr(&reader, _msgid, 20);
-
-  mpack_done_map(&reader);
-
-  g_Vibe.setTransientThreshold(transientThreshold);
-  g_Vibe.setTransientDuration(transientDuration);
-  g_Vibe.setPeriod(period);
-
-  PRINTS("\nsender: "); PRINTVAL(sender);
-  PRINT("\n_msgid: ", _msgid);
-  PRINT("\ntrans_threshold (mG): ", transientThreshold);
-  PRINT("\ntrans_debcntr: ", transientDuration);
-  PRINT("\nperiod: ", (long)period);
+  // yield();
 }
 
 void printLocalTime(void) {

@@ -11,7 +11,9 @@
 
 #define NUM_LEDS 1
 #define LED_PIN 2
-#define ACCEL_PIN 25
+#define ACCEL_INTERRUPT_PIN 25
+#define ACCEL_SDA_PIN 21
+#define ACCEL_SCL_PIN 22
 
 #define MODEM_TX 27
 #define MODEM_RX 26
@@ -43,6 +45,6 @@
 #define MAX_ERROR_COUNT (ERROR_STREAM_SIZE - 4)
 #define MAX_NETWORK_ERROR_COUNT 10
 
-#define FIRMWARE_VERSION "SolarVibe_FW_1.00.0"
+#define FIRMWARE_VERSION "SolarVibe_FW_1.00.1"
 
 #endif // LUMAVIBE_GLOBAL_H
