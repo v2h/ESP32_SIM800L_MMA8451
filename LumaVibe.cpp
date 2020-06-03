@@ -658,6 +658,13 @@ static void LumaVibe_packArray(mpack_writer_t *writer, const char *entryNames[3]
   }
 }
 
+static void LumaVibe_delay(uint64_t milliSeconds) {
+  uint32_t start = millis();
+  while (millis() - start < milliSeconds) {
+    LumaVibe_keepAlive();
+  }
+}
+
 // 
 static LumaVibe_Error_t LumaVibe_publish(const char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite) {
   PRINT("\nBytes to be published: ", bytesToPublish);
