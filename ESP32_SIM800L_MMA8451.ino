@@ -21,9 +21,6 @@ void setup() { // takes 33ms
   uint32_t setupTimer = millis();
   LumaVibe_setPowerBoostKeepOn(true);
   LumaVibe_enableModem();
-#ifdef ZHAGA
-  SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
-#endif
   SerialUSB.begin(115200);
   SerialUSB.print("\nMAC address: ");
   SerialUSB.println(WiFi.macAddress());

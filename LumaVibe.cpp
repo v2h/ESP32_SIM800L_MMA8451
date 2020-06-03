@@ -442,6 +442,7 @@ void LumaVibe_goToSleep(void) {
   PRINTS("\nGoodnight!\n");
   SerialUSB.flush();
   // SerialUSB.end(); DON'T DO THIS
+  LumaVibe_enableAccelInterrupt();
   LumaVibe_endWatchDog();
   esp_sleep_enable_timer_wakeup(Settings.sleepTime_ms * 1000);
   esp_sleep_enable_ext0_wakeup((gpio_num_t)Settings.accelInterruptPin, LOW);
