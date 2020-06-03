@@ -535,9 +535,8 @@ static void LumaVibe_keepAlive() {
 //
 static LumaVibe_Error_t LumaVibe_setupModem() {
   PRINTS("\nSetting up modem");
-#ifndef ZHAGA
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
-#endif
+  delay(3000);
   if (!modem.restart())
     return LUMAVIBE_ERROR_MODEM_RESTART_FAIL;
   String modemInfo = modem.getModemInfo();
@@ -758,7 +757,7 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
   PRINT("\nreceived trans_debcntr: ", transientDbCtr);
   PRINT("\nreceived period: ", (long)period);
   PRINT("\nreceived range: ", range);
-  PRINT("\naccel threshold (mg): ", accel.params.transientThresholdCount / TRANS_THS_mG_per_COUNT);
+  PRINT("\naccel threshold (mg): ", accel.params.transientThresholdCount * TRANS_THS_mG_per_COUNT);
   PRINT("\naccel debcntr:", accel.params.transientDebouncCount);
   PRINT("\naccel range: ", accel.params.range);
 }
