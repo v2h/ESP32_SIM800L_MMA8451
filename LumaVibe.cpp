@@ -86,7 +86,6 @@ static void IRAM_ATTR accelerometerISR() {
 }
 
 static void IRAM_ATTR watchDogISR() {
-  LumaVibe_hardResetModem();
   esp_restart();
 }
 
