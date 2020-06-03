@@ -550,7 +550,7 @@ static LumaVibe_Error_t LumaVibe_setupModem() {
   do {
     PRINT("retry..", gprsTry);
     modem.gprsConnect("", "", "");
-    delay(1000);
+    LumaVibe_delay(1000);
     gprsTry++;
     LumaVibe_keepAlive();
   } while (!modem.isGprsConnected() && gprsTry < 5); // ATTENTION: WHILE LOOP!!
