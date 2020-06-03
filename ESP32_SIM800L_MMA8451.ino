@@ -63,27 +63,25 @@ void setup() { // takes 33ms
   if (LUMAVIBE_ERROR_NONE != err)
     LumaVibe_LOG_ERROR(err);
   LumaVibe_setLED(CRGB::Yellow);
-  yield();
+  
 
   err = LumaVibe_begin();
   if (LUMAVIBE_ERROR_NONE != err)
     LumaVibe_LOG_ERROR(err);
-  yield();
 
   PRINTF("\nSetup took %lu ms", millis() - setupTimer);
   PRINTS("\nEnd of setup()\n");
 }
 
 //
-void loop() {
-  // PRINTS("\nloop");
+void loop() { 
   if (1 == g_bootCount) {
     // delay(5000);
     if (g_accelInterruptFlag) {
       LumaVibe_clearAccelInterrupt();
       g_accelInterruptFlag = false;
       PRINTS("\nFirst boot");
-      yield();
+      
       LumaVibe_goToSleep();
     }
   }
@@ -98,26 +96,26 @@ void loop() {
     LumaVibe_setLED(CRGB::Purple);
     time_t timeAtMeasure;
     err = LumaVibe_measure(&timeAtMeasure);
-    yield();
+    
     if (LUMAVIBE_ERROR_NONE != err)
       LumaVibe_LOG_ERROR(err);
     
     LumaVibe_setLED(CRGB::Aqua);
     uint32_t bytesPacked;
     err = LumaVibe_packData(timeAtMeasure, &bytesPacked);
-    yield();
+    
     if (LUMAVIBE_ERROR_NONE != err)
       LumaVibe_LOG_ERROR(err);
     PRINT("\nPacked Bytes: ", bytesPacked);
 
     LumaVibe_setLED(CRGB::Green);
     err = LumaVibe_publishData("ngd/demo/HSRW_Hung/data", bytesPacked, 512);
-    yield();
+    
     if (LUMAVIBE_ERROR_NONE != err)
       LumaVibe_LOG_ERROR(err);
     
     LumaVibe_getCommandsFromServer("ngd/demo/HSRW_Hung/command");
-    yield();
+    
 
     /*
     LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_PUBLISH_BEGIN_FAIL;
@@ -167,10 +165,9 @@ void loop() {
     LumaVibe_clearAccelInterrupt();
     g_accelInterruptFlag = false;
     g_timerInterruptFlag = false;
-    LumaVibe_enableAccelInterrupt();
     LumaVibe_goToSleep();
   }
-  // yield();
+  // 
 }
 
 void printLocalTime(void) {
