@@ -442,6 +442,7 @@ void LumaVibe_goToSleep(void) {
   LumaVibe_keepAlive();
   PRINTS("\nGoodnight!\n");
   SerialUSB.flush();
+  SerialAT.end();
   // SerialUSB.end(); DON'T DO THIS
   LumaVibe_enableAccelInterrupt();
   LumaVibe_endWatchDog();
