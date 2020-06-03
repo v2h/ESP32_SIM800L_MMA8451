@@ -79,6 +79,7 @@ static LumaVibe_Error_t LumaVibe_connectMQTT();
 static void LumaVibe_packArray(mpack_writer_t *writer, const char *entryNames[3], const uint16_t length);
 static LumaVibe_Error_t LumaVibe_publish(const char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite);
 static void mqttCallback(char* topic, byte* payload, unsigned int length);
+static void LumaVibe_delay(uint64_t milliSeconds);
 
 //
 static void IRAM_ATTR accelerometerISR() {
@@ -119,7 +120,7 @@ bool LumaVibe_setPowerBoostKeepOn(bool en)
 
 void LumaVibe_hardResetModem() {
   digitalWrite(MODEM_RST, LOW);
-  delay(200); // must be more than 105ms
+  LumaVibe_delay(200); // must be more than 105ms
   digitalWrite(MODEM_RST, HIGH);
 }
 
@@ -146,7 +147,7 @@ void LumaVibe_enableModem() {
   }
   void LumaVibe_hardResetModem() {
     digitalWrite(MODEM_RST, HIGH);
-    delay(200);
+    LumaVibe_delay(200);
     digitalWrite(MODEM_RST, LOW);
   }
   void LumaVibe_disableModem() {
@@ -310,11 +311,11 @@ LumaVibe_Error_t LumaVibe_publishData(const char *publishDataTopic, uint32_t byt
 void LumaVibe_getCommandsFromServer(const char *subscribeTopic) {
   mqtt.setCallback(mqttCallback);
   mqtt.subscribe(subscribeTopic);
-  delay(2000);
+  LumaVibe_delay(2000);
   mqtt.loop();
+  LumaVibe_delay(2000);
   mqtt.loop();
   mqtt.disconnect();
-  LumaVibe_keepAlive();
 }
 
 //
@@ -404,7 +405,6 @@ void LumaVibe_detachAccelInterrupt() {
 void LumaVibe_enableAccelInterrupt() {
   pinMode(Settings.accelInterruptPin, INPUT_PULLUP);
   attachInterrupt(Settings.accelInterruptPin, &accelerometerISR, FALLING);
-  PRINTS("\nAcceleration interrupt enabled");
 }
 
 //
@@ -415,6 +415,7 @@ void LumaVibe_setPeriod(uint32_t period_s) {
 //
 // TODO: Handle errors in here
 void LumaVibe_goToSleep(void) {
+  LumaVibe_keepAlive();
   LumaVibe_clearLED();
   PRINTS("\nGoing to sleep..");
   PRINT("\nSleep time: ", (long)Settings.sleepTime_ms);
@@ -438,6 +439,7 @@ void LumaVibe_goToSleep(void) {
   }
   LumaVibe_disableModem();
 #endif
+  LumaVibe_keepAlive();
   PRINTS("\nGoodnight!\n");
   SerialUSB.flush();
   // SerialUSB.end(); DON'T DO THIS
@@ -452,7 +454,6 @@ void LumaVibe_goToSleep(void) {
   LumaVibe_detachAccelInterrupt();
   g_timerInterruptFlag = true;
   LumaVibe_enableTimer(&watchDogTimer, WATCHDOG_TIMER_NUMBER, Settings.watchDogTime_ms, watchDogISR);
-  LumaVibe_keepAlive();
   LumaVibe_setPowerBoostKeepOn(true);
   LumaVibe_enableModem();
 }
@@ -536,13 +537,7 @@ static void LumaVibe_keepAlive() {
 static LumaVibe_Error_t LumaVibe_setupModem() {
   PRINTS("\nSetting up modem");
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
-  delay(3000);
-  if (!modem.restart())
-    return LUMAVIBE_ERROR_MODEM_RESTART_FAIL;
-  String modemInfo = modem.getModemInfo();
-  PRINT("\nmodem info: ", modemInfo);
-  //dumpSimInfo();
-  LumaVibe_keepAlive();
+  LumaVibe_delay(3000);
   PRINTS("\nwaiting for network...");
   if (!modem.waitForNetwork(30000L))
     if (!modem.isNetworkConnected())
@@ -577,7 +572,6 @@ static LumaVibe_Error_t LumaVibe_syncTimeWithNetwork(time_t timeAtMeasure_s, cha
   do {
     isNetWorkTimeReceived = modem.getGsmLocationTime(&timeBuffer.tm_year, &timeBuffer.tm_mon, &timeBuffer.tm_mday,
                                                       &timeBuffer.tm_hour, &timeBuffer.tm_min, &timeBuffer.tm_sec);
-    PRINTF("..success: %d", isNetWorkTimeReceived); 
     LumaVibe_keepAlive();
   } while (false == isNetWorkTimeReceived && syncTry-->0);
   
