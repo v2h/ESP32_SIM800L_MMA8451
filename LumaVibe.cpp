@@ -212,7 +212,7 @@ LumaVibe_Error_t LumaVibe_begin() {
   if (MMA8451_setHpfCutOff(&accel, MMA8451_HPF_CUTOFF_2Hz_ODR_800Hz) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
   if (MMA8451_setLowNoiseMode(&accel, MMA8451_LOWNOISE_ON) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
   if (MMA8451_setRange(&accel, MMA8451_RANGE_2G) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
-  if (MMA8451_setTransientThreshold_mG(&accel, 1 * TRANS_THS_mG_per_COUNT) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
+  if (MMA8451_setTransientThreshold_mG(&accel, 5 * TRANS_THS_mG_per_COUNT) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
   if (MMA8451_setTransientDebounceCounter(&accel, 3) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
   if (MMA8451_setOverSamplingMode(&accel, MMA8451_OVERSAMPLING_NORMAL) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
   if (MMA8451_enableTransientDetection(&accel, false) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
