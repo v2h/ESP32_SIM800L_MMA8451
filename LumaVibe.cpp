@@ -41,7 +41,7 @@ static TinyGsm       modem(SerialAT);
 static TinyGsmClient client(modem);
 static PubSubClient  mqtt(client);
 static CRGB          led[NUM_LEDS];
-static hw_timer_t *  watchDogTimer;
+static hw_timer_t *  watchDogTimer = NULL;
 
 static const struct {
   const char * const timestamp    = "timestamp";
