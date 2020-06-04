@@ -270,7 +270,7 @@ LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked
   PRINTS("\nPacking header");
   mpack_writer_t writer;
   mpack_writer_init(&writer, PackBuffer, MQTT_DATA_PACKBUFFER_SIZE);
-  mpack_start_map(&writer, 14);
+  mpack_start_map(&writer, 15);
   char timeStamp[21] = {0};
   LumaVibe_syncTimeWithNetwork(timeAtMeasure_s, timeStamp);
   // TODO: refactor this, from here..
@@ -285,6 +285,7 @@ LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked
   mpack_write_cstr(&writer, StringToPack.interrupted);  mpack_write_bool(&writer, g_accelInterruptFlag);
   mpack_write_cstr(&writer, StringToPack.range);        mpack_write_cstr(&writer, RangeStr[(uint8_t)accel.params.range]);
   mpack_write_cstr(&writer, StringToPack.divider);      mpack_write_u16(&writer, DividerStr[(uint8_t)accel.params.range]);
+  mpack_write_cstr(&writer, StringToPack.bootcount);    mpack_write_u32(&writer, (uint32_t)g_bootCount);
 
   // ..to here
   PRINTF("\nPacking array of %d elements", Settings.numberOfMeas);
