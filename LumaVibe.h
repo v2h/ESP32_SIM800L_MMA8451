@@ -94,6 +94,7 @@ extern bool g_isEmergency;
 extern volatile bool g_accelInterruptFlag;
 extern volatile bool g_timerInterruptFlag;
 extern RTC_DATA_ATTR uint64_t g_bootCount;
+extern portMUX_TYPE  g_mux;
 
 #endif //LUMAVIBE_H
 

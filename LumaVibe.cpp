@@ -23,6 +23,7 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 volatile bool g_accelInterruptFlag = false;
 volatile bool g_timerInterruptFlag = false;
 RTC_DATA_ATTR uint64_t g_bootCount = 0;
+portMUX_TYPE  mux = portMUX_INITIALIZER_UNLOCKED;
 //--------------------------------------------
 
 /*
@@ -84,11 +85,15 @@ static void LumaVibe_delay(uint64_t milliSeconds);
 
 //
 static void IRAM_ATTR accelerometerISR() {
+  portENTER_CRITICAL_ISR(&mux);
   g_accelInterruptFlag = true;
+  portEXIT_CRITICAL_ISR(&mux);
 }
 
 static void IRAM_ATTR watchDogISR() {
+  portENTER_CRITICAL_ISR(&mux);
   esp_restart();
+  portEXIT_CRITICAL_ISR(&mux);
 }
 
 

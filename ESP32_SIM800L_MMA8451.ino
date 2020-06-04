@@ -9,6 +9,7 @@
 // .. see https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/deep-sleep-stub.html
 
 #include "esp_attr.h"
+#include <freertos/portmacro.h>
 #include <WiFi.h>
 
 #include "LumaVibe.h"
@@ -160,11 +161,12 @@ void loop() {
 
     LumaVibe_flashLED(CRGB::Green, 200, 3, false);
     LumaVibe_clearAccelInterrupt();
+    portENTER_CRITICAL(&g_mux);
     g_accelInterruptFlag = false;
     g_timerInterruptFlag = false;
+    portEXIT_CRITICAL(&g_mux);
     LumaVibe_goToSleep();
   }
-  // 
 }
 
 void printLocalTime(void) {
