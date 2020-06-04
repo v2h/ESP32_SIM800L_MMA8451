@@ -450,6 +450,7 @@ void LumaVibe_goToSleep(void) {
   PRINTS("\nGoodnight!\n");
   SerialUSB.flush();
   SerialAT.end();
+  LumaVibe_delay(3000);
   // SerialUSB.end(); DON'T DO THIS
   LumaVibe_enableAccelInterrupt();
   LumaVibe_endWatchDog();
@@ -545,13 +546,15 @@ static void LumaVibe_keepAlive() {
 static LumaVibe_Error_t LumaVibe_setupModem() {
   PRINTS("\nSetting up modem");
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
-  LumaVibe_delay(3000);
+  LumaVibe_delay(4000);
   PRINTS("\nwaiting for network...");
-  if (!modem.waitForNetwork(30000L))
-    if (!modem.isNetworkConnected())
-      return LUMAVIBE_ERROR_MODEM_NETWORK_NOT_CONNECTED;
+  uint32_t start = millis();
+  while (!modem.isNetworkConnected() && millis() - start < 30000) {
+    LumaVibe_keepAlive();
+  }
+  if (!modem.isNetworkConnected())
+    return LUMAVIBE_ERROR_MODEM_NETWORK_NOT_CONNECTED;
   PRINTS("\nnetwork connected...");
-  LumaVibe_keepAlive();
   PRINTS("\nconnecting to GPRS..");
   uint8_t gprsTry = 0;
   do {
@@ -621,9 +624,7 @@ static LumaVibe_Error_t LumaVibe_syncTimeWithNetwork(time_t timeAtMeasure_s, cha
     }
   }
   
-  PRINTS("\ntimestamp: ");
-  PRINTVAL(String(timeStamp));
-  PRINTVAL("\n");
+  PRINTF("\ntimestamp: %s\n", timeStamp);
   LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
 }
