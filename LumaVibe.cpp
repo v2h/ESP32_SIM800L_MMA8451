@@ -57,6 +57,7 @@ static const struct {
   const char * const y_accel      = "y-accel";
   const char * const z_accel      = "z-accel";
   const char * const interrupted  = "interrupted";
+  const char * const bootcount    = "bootcount";
 } StringToPack;
 
 static const char * RangeStr[(uint8_t)MMA8451_RANGE_MAX] = { "2G", "4G", "8G"};
