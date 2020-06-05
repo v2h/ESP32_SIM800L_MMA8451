@@ -71,7 +71,6 @@ static const uint16_t DividerStr[(uint8_t)MMA8451_RANGE_MAX] = {
 // static/private functions -------------------------------------
 */
 static void LumaVibe_dumpSimInfo();
-static LumaVibe_Error_t LumaVibe_enableTimer(hw_timer_t **timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)());
 static void LumaVibe_keepAlive();
 static LumaVibe_Error_t LumaVibe_setupModem();
 static LumaVibe_Error_t LumaVibe_syncTimeWithNetwork(time_t timeAtMeasure_s, char timeStamp[21]);
@@ -183,7 +182,7 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
   
   FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS); // CAUTION
   FastLED.setBrightness(30);
-  
+    
   return LUMAVIBE_ERROR_NONE;
 }
 
@@ -442,21 +441,20 @@ void LumaVibe_goToSleep(void) {
   PRINTS("Goodnight!\n");
   SerialUSB.flush();
   SerialAT.end();
-  LumaVibe_delay(3000);
-  // SerialUSB.end(); DON'T DO THIS
+  delay(3000);
+  //SerialUSB.end();
+
   LumaVibe_enableAccelInterrupt();
   esp_sleep_enable_timer_wakeup(Settings.sleepTime_ms * 1000);
   gpio_wakeup_enable((gpio_num_t)Settings.accelInterruptPin, GPIO_INTR_LOW_LEVEL); // edge interrupt not supported
   esp_sleep_enable_gpio_wakeup();
   
+  
   esp_light_sleep_start();
-  g_bootCount++;
-  yield();
-  LumaVibe_detachAccelInterrupt();
-  LumaVibe_setPowerBoostKeepOn(true);
-  LumaVibe_enableModem();
-}
+  //SerialUSB.begin(115200);
 
+  g_bootCount++;
+  LumaVibe_detachAccelInterrupt();
 }
 
 //
@@ -514,9 +512,11 @@ static void LumaVibe_keepAlive() {
 
 //
 static LumaVibe_Error_t LumaVibe_setupModem() {
+  LumaVibe_setPowerBoostKeepOn(true);
+  LumaVibe_enableModem();
   PRINTS("Setting up modem\n");
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
-  LumaVibe_delay(4000);
+  LumaVibe_delay(3000);
   PRINTS("waiting for network...\n");
   uint32_t start = millis();
   while (!modem.isNetworkConnected() && millis() - start < 30000) {
@@ -525,6 +525,7 @@ static LumaVibe_Error_t LumaVibe_setupModem() {
   if (!modem.isNetworkConnected())
     return LUMAVIBE_ERROR_MODEM_NETWORK_NOT_CONNECTED;
   PRINTS("network connected...\n");
+  LumaVibe_keepAlive();
   PRINTS("connecting to GPRS..\n");
   uint8_t gprsTry = 0;
   do {
@@ -532,7 +533,6 @@ static LumaVibe_Error_t LumaVibe_setupModem() {
     modem.gprsConnect("", "", "");
     LumaVibe_delay(1000);
     gprsTry++;
-    LumaVibe_keepAlive();
   } while (!modem.isGprsConnected() && gprsTry < 5); // ATTENTION: WHILE LOOP!!
   if (!modem.isGprsConnected()) {
     return LUMAVIBE_ERROR_MODEM_GPRS_NOT_CONNECTED;
@@ -579,8 +579,8 @@ static LumaVibe_Error_t LumaVibe_syncTimeWithNetwork(time_t timeAtMeasure_s, cha
     timeBuffer.tm_mon -= 1; // month of struct tm is supposed to be "months since January"
     time_t networkTime_s = mktime(&timeBuffer); // POSIX time in sec
     time_t time_s = networkTime_s - (now_s - timeAtMeasure_s); // POSIX time in sec at 1st measurement
-    tm shiftedTime = *localtime(&time_s);
     PRINTLN("Network time in sec: ", networkTime_s);
+    tm shiftedTime = *localtime(&time_s); // convert from time_t back to struct tm
 
     // Export time for further use (i.e. packing). Format: 2020-03-26T18:37:00Z
     sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", shiftedTime.tm_year + 1900, shiftedTime.tm_mon + 1, shiftedTime.tm_mday, 

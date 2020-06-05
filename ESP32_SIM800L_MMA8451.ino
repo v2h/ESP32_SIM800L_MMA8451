@@ -21,8 +21,6 @@ void printLocalTime(void);
 
 void setup() { // takes 33ms
   uint32_t setupTimer = millis();
-  LumaVibe_setPowerBoostKeepOn(true);
-  LumaVibe_enableModem();
   SerialUSB.begin(115200);
   SerialUSB.println("MAC address: " + WiFi.macAddress());
   SerialUSB.println("Firmware version: " + String(FIRMWARE_VERSION));
@@ -43,8 +41,8 @@ void setup() { // takes 33ms
     /*accelInterruptPin*/     ACCEL_INTERRUPT_PIN,
     /*numberOfMeas*/          2048,
     /*measureFrequency*/      200,
-    /*sleepTime_ms*/          60000*10,
-    /*watchDogTime_ms*/       60000,  
+    /*sleepTime_ms*/          60000 / 6,
+    // /*watchDogTime_ms*/       10000 * 60,  
     /*mqttBroker[20]*/        "mastap.net",
     /*mqttUserName[10]*/      "user",
     /*mqttPassword[10]*/      "mqtt",
@@ -76,13 +74,16 @@ void loop() {
     // delay(5000);
     if (g_accelInterruptFlag) {
       LumaVibe_clearAccelInterrupt();
+      portENTER_CRITICAL(&g_mux);
       g_accelInterruptFlag = false;
+      portEXIT_CRITICAL(&g_mux);
       PRINTS("First boot\n");
       
       LumaVibe_goToSleep();
     }
   }
   
+  if (g_accelInterruptFlag) {
     uint64_t start = millis();
     // PRINTLN("accelInterruptFlag: ", g_accelInterruptFlag);
 
