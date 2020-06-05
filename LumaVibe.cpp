@@ -21,7 +21,6 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 // Global variables, extern-ed to main -------
 */
 volatile bool g_accelInterruptFlag = false;
-volatile bool g_timerInterruptFlag = false;
 RTC_DATA_ATTR uint64_t g_bootCount = 0;
 portMUX_TYPE  mux = portMUX_INITIALIZER_UNLOCKED;
 //--------------------------------------------
@@ -461,7 +460,6 @@ void LumaVibe_goToSleep(void) {
   g_bootCount++;
   yield();
   LumaVibe_detachAccelInterrupt();
-  g_timerInterruptFlag = true;
   LumaVibe_enableTimer(&watchDogTimer, WATCHDOG_TIMER_NUMBER, Settings.watchDogTime_ms, watchDogISR);
   LumaVibe_setPowerBoostKeepOn(true);
   LumaVibe_enableModem();

@@ -92,7 +92,6 @@ void LumaVibe_flashLED(CRGB::HTMLColorCode color, uint16_t duration_ms, uint8_t 
 // ..whenever this header is included
 extern bool g_isEmergency;
 extern volatile bool g_accelInterruptFlag;
-extern volatile bool g_timerInterruptFlag;
 extern RTC_DATA_ATTR uint64_t g_bootCount;
 extern portMUX_TYPE  g_mux;
 

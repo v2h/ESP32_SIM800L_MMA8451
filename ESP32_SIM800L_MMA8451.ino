@@ -84,10 +84,8 @@ void loop() {
     }
   }
   
-  if (g_accelInterruptFlag || g_timerInterruptFlag) {
     uint64_t start = millis();
-    // PRINT("\naccelInterruptFlag: ", g_accelInterruptFlag);
-    // PRINT("\ntimerInterruptFlag: ", g_timerInterruptFlag);
+    // PRINTLN("accelInterruptFlag: ", g_accelInterruptFlag);
 
     LumaVibe_Error_t err;
 
@@ -163,7 +161,6 @@ void loop() {
     LumaVibe_clearAccelInterrupt();
     portENTER_CRITICAL(&g_mux);
     g_accelInterruptFlag = false;
-    g_timerInterruptFlag = false;
     portEXIT_CRITICAL(&g_mux);
     LumaVibe_goToSleep();
   }
