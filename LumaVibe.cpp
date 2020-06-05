@@ -22,7 +22,7 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 */
 volatile bool g_accelInterruptFlag = false;
 RTC_DATA_ATTR uint64_t g_bootCount = 0;
-portMUX_TYPE  mux = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE  g_mux = portMUX_INITIALIZER_UNLOCKED;
 //--------------------------------------------
 
 /*
@@ -81,11 +81,9 @@ static LumaVibe_Error_t LumaVibe_publish(const char *publishTopic, uint32_t byte
 static void mqttCallback(char* topic, byte* payload, unsigned int length);
 static void LumaVibe_delay(uint64_t milliSeconds);
 
-//
-static void IRAM_ATTR accelerometerISR() {
-  portENTER_CRITICAL_ISR(&mux);
+  portENTER_CRITICAL_ISR(&g_mux);
   g_accelInterruptFlag = true;
-  portEXIT_CRITICAL_ISR(&mux);
+  portEXIT_CRITICAL_ISR(&g_mux);
 }
 
 
