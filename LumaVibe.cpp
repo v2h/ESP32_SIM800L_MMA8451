@@ -159,7 +159,6 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
   if (0 == s->measureFrequency || s->measureFrequency > 1000) {
     return LUMAVIBE_ERROR_FREQUENCY;
   }
-  g_bootCount++; // Caution: when to increment g_bootCount??
 
   PRINTF("g_bootCount: %lu\n", (long)g_bootCount);
   if (1 == g_bootCount) {

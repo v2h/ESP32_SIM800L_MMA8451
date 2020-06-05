@@ -71,8 +71,8 @@ void setup() { // takes 33ms
 }
 
 //
-void loop() { 
-  if (1 == g_bootCount) {
+void loop() {
+  if (0 == g_bootCount) {
     // delay(5000);
     if (g_accelInterruptFlag) {
       LumaVibe_clearAccelInterrupt();
