@@ -40,7 +40,6 @@ static TinyGsm       modem(SerialAT);
 static TinyGsmClient client(modem);
 static PubSubClient  mqtt(client);
 static CRGB          led[NUM_LEDS];
-static hw_timer_t *  watchDogTimer = NULL;
 
 static const struct {
   const char * const timestamp    = "timestamp";
@@ -88,15 +87,6 @@ static void IRAM_ATTR accelerometerISR() {
   g_accelInterruptFlag = true;
   portEXIT_CRITICAL_ISR(&mux);
 }
-
-static void IRAM_ATTR watchDogISR() {
-  portENTER_CRITICAL_ISR(&mux);
-  esp_restart();
-  portEXIT_CRITICAL_ISR(&mux);
-}
-
-
-// -----------------------------------------------------------------------------
 
 
 
@@ -165,15 +155,11 @@ void LumaVibe_enableModem() {
 
 //
 LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
-  if (0 == s->sleepTime_ms || 0 == s->watchDogTime_ms) {
+  if (0 == s->sleepTime_ms) {
     return LUMAVIBE_ERROR_TIME_ZERO;
   }
   if (0 == s->measureFrequency || s->measureFrequency > 1000) {
     return LUMAVIBE_ERROR_FREQUENCY;
-  }
-  // Initialize watchdog timer
-  if (LUMAVIBE_ERROR_NONE != LumaVibe_enableTimer(&watchDogTimer, WATCHDOG_TIMER_NUMBER, s->watchDogTime_ms, &watchDogISR)) {
-    return LUMAVIBE_ERROR_TIMER_NULL;
   }
   g_bootCount++; // Caution: when to increment g_bootCount??
   PRINT("\ng_bootCount: ", (long)g_bootCount);
@@ -452,7 +438,6 @@ void LumaVibe_goToSleep(void) {
   LumaVibe_delay(3000);
   // SerialUSB.end(); DON'T DO THIS
   LumaVibe_enableAccelInterrupt();
-  LumaVibe_endWatchDog();
   esp_sleep_enable_timer_wakeup(Settings.sleepTime_ms * 1000);
   esp_sleep_enable_ext0_wakeup((gpio_num_t)Settings.accelInterruptPin, LOW);
   
@@ -460,14 +445,10 @@ void LumaVibe_goToSleep(void) {
   g_bootCount++;
   yield();
   LumaVibe_detachAccelInterrupt();
-  LumaVibe_enableTimer(&watchDogTimer, WATCHDOG_TIMER_NUMBER, Settings.watchDogTime_ms, watchDogISR);
   LumaVibe_setPowerBoostKeepOn(true);
   LumaVibe_enableModem();
 }
 
-//
-void LumaVibe_endWatchDog() {
-  timerEnd(watchDogTimer);
 }
 
 //
@@ -518,25 +499,8 @@ static void LumaVibe_dumpSimInfo() {
   Serial.println(cop);
 }
 
-// Passing a pointer to a pointer to hw_timer_t, so that the original timer is updated.
-static LumaVibe_Error_t LumaVibe_enableTimer(hw_timer_t **timer, uint8_t timerNumber, uint64_t timer_ms, void (*timerISR)()) {
-  *timer = timerBegin(timerNumber, FCLK_DIVIDER, true);
-  if (NULL == *timer)
-    return LUMAVIBE_ERROR_TIMER_NULL;
-  timerAttachInterrupt(*timer, timerISR, true);
-  timerAlarmWrite(*timer, timer_ms * 1000, false);
-
-  // if the following yield() is removed, the timer will not be enabled the second time
-  // REF: https://github.com/espressif/arduino-esp32/issues/1313
-  yield();
-
-  timerAlarmEnable(*timer);
-  return LUMAVIBE_ERROR_NONE;
-}
-
 //
 static void LumaVibe_keepAlive() {
-  timerWrite(watchDogTimer, 0);
   rtc_wdt_feed();
 }
 

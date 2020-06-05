@@ -46,7 +46,7 @@ typedef struct {
   uint16_t numberOfMeas;
   uint16_t measureFrequency;
   uint64_t sleepTime_ms;
-  uint64_t watchDogTime_ms;
+  // uint64_t watchDogTime_ms;
   char     mqttBroker[20];
   char     mqttUserName[10];
   char     mqttPassword[10];
@@ -82,7 +82,6 @@ void LumaVibe_setTransientThreshold_mG(uint16_t threshold_mG);
 void LumaVibe_settransientDebounceCounter(uint16_t duration);
 void LumaVibe_setPeriod(uint32_t period_s);
 void LumaVibe_goToSleep(void);
-void LumaVibe_endWatchDog();
 void LumaVibe_setLED(CRGB::HTMLColorCode color);
 void LumaVibe_clearLED();
 void LumaVibe_flashLED(CRGB::HTMLColorCode color, uint16_t duration_ms, uint8_t numberOfTimes, bool retainColor);

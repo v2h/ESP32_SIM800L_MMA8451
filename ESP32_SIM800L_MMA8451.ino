@@ -131,7 +131,7 @@ void loop() {
       PRINTS("\nThere is error");
       if (LumaVibe_countNetworkError() >= MAX_NETWORK_ERROR_COUNT || LumaVibe_countError() >= MAX_ERROR_COUNT) {
         // Jump to emergency-OTA
-        LumaVibe_endWatchDog();
+        // LumaVibe_endWatchDog();
         LumaVibe_disableModem();
         LumaVibe_setPowerBoostKeepOn(false);
         LumaVibe_setLED(CRGB::Red);
