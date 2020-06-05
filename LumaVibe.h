@@ -16,9 +16,7 @@
 #include "FastLED.h"
 
 // Marcro for handdling errors
-#if LUMAVIBE_ENABLE_ERROR_LOGGING
 #define LumaVibe_LOG_ERROR(e) LumaVibe_logError(e, __LINE__)
-#endif // LUMAVIBE_ENABLE_HANDLING_ENABLE
 
 typedef enum {
     LUMAVIBE_ERROR_NONE = 0,
