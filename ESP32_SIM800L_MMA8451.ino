@@ -7,6 +7,7 @@
 // RTC_DATA_ATTR and RTC_RODATA_ATTR are placed in..
 // ..the RTC fast memory segment otherwise it goes to RTC slow memory (default option)..
 // .. see https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/deep-sleep-stub.html
+// .. On printf() and \n: https://esp32.com/viewtopic.php?t=3447
 
 #include "esp_attr.h"
 #include <freertos/portmacro.h>
@@ -23,15 +24,13 @@ void setup() { // takes 33ms
   LumaVibe_setPowerBoostKeepOn(true);
   LumaVibe_enableModem();
   SerialUSB.begin(115200);
-  SerialUSB.print("\nMAC address: ");
-  SerialUSB.println(WiFi.macAddress());
-  SerialUSB.print("\nFirmware version: ");
-  SerialUSB.println(FIRMWARE_VERSION);
+  SerialUSB.println("MAC address: " + WiFi.macAddress());
+  SerialUSB.println("Firmware version: " + String(FIRMWARE_VERSION));
 
   // This checks if the board wakes up from emergency-OTA
   if (g_isEmergency) {
     LumaVibe_detachAccelInterrupt();
-    PRINTS("\nRe-entering emergency mode");
+    PRINTS("Re-entering emergency mode\n");
     ota_updater_begin();
   }
 
@@ -67,8 +66,8 @@ void setup() { // takes 33ms
   if (LUMAVIBE_ERROR_NONE != err)
     LumaVibe_LOG_ERROR(err);
 
-  PRINTF("\nSetup took %lu ms", millis() - setupTimer);
-  PRINTS("\nEnd of setup()\n");
+  PRINTF("Setup took %lu ms\n", millis() - setupTimer);
+  PRINTS("End of setup()\n");
 }
 
 //
@@ -78,7 +77,7 @@ void loop() {
     if (g_accelInterruptFlag) {
       LumaVibe_clearAccelInterrupt();
       g_accelInterruptFlag = false;
-      PRINTS("\nFirst boot");
+      PRINTS("First boot\n");
       
       LumaVibe_goToSleep();
     }
@@ -102,7 +101,7 @@ void loop() {
     
     if (LUMAVIBE_ERROR_NONE != err)
       LumaVibe_LOG_ERROR(err);
-    PRINT("\nPacked Bytes: ", bytesPacked);
+    PRINTLN("Packed Bytes: ", bytesPacked);
 
     LumaVibe_setLED(CRGB::Green);
     err = LumaVibe_publishData("ngd/demo/HSRW_Hung/data", bytesPacked, 512);
@@ -125,10 +124,10 @@ void loop() {
     */
     printLocalTime();
 
-    PRINT("\nError Count: ", LumaVibe_countError());
+    PRINTF("Error Count: %d\n", LumaVibe_countError());
     // Handle errors here
     if (0 != LumaVibe_countError()) {
-      PRINTS("\nThere is error");
+      PRINTS("There is error\n");
       if (LumaVibe_countNetworkError() >= MAX_NETWORK_ERROR_COUNT || LumaVibe_countError() >= MAX_ERROR_COUNT) {
         // Jump to emergency-OTA
         // LumaVibe_endWatchDog();
@@ -141,7 +140,7 @@ void loop() {
         uint32_t bytesPacked;
         LumaVibe_Error_t err;
         //bytesPacked = 0;
-        PRINTS("\nPacking up error");
+        PRINTS("Packing up error\n");
         err = LumaVibe_packError(&bytesPacked);
         if (LUMAVIBE_ERROR_NONE != err) {
           LumaVibe_LOG_ERROR(err);
@@ -151,11 +150,11 @@ void loop() {
           LumaVibe_LOG_ERROR(err);
         } else {
           LumaVibe_clearError();
-          PRINTS("\nErrors cleared");
+          PRINTS("Errors cleared\n");
         }
       }
     }
-    SerialUSB.printf("\nTime elapsed: %llu sec", (millis() - start)/1000);
+    printf("Time elapsed: %llu sec\n", (millis() - start)/1000);
 
     LumaVibe_flashLED(CRGB::Green, 200, 3, false);
     LumaVibe_clearAccelInterrupt();
@@ -169,6 +168,6 @@ void loop() {
 void printLocalTime(void) {
   struct tm now;
   getLocalTime(&now, 0); // This returns POSIX time
-  SerialUSB.printf("\nSystem time: %04d-%02d-%02dT%02d:%02d:%02dZ", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, 
+  printf("System time: %04d-%02d-%02dT%02d:%02d:%02dZ\n", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, 
                                                        now.tm_hour, now.tm_min, now.tm_sec);
 }
