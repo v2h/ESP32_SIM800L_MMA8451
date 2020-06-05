@@ -81,11 +81,14 @@ static LumaVibe_Error_t LumaVibe_publish(const char *publishTopic, uint32_t byte
 static void mqttCallback(char* topic, byte* payload, unsigned int length);
 static void LumaVibe_delay(uint64_t milliSeconds);
 
+/*
+// Interrupt(s) -------------------------------------
+*/
+static void IRAM_ATTR accelerometerISR(void *arg) {
   portENTER_CRITICAL_ISR(&g_mux);
   g_accelInterruptFlag = true;
   portEXIT_CRITICAL_ISR(&g_mux);
 }
-
 
 
 /*
@@ -204,9 +207,16 @@ LumaVibe_Error_t LumaVibe_begin() {
 
   PRINTF("accel range: %d\n", accel.params.range);
 
-  LumaVibe_enableAccelInterrupt();
+  gpio_config_t ioconfig;
+  ioconfig.pin_bit_mask = (BIT(Settings.accelInterruptPin));
+  ioconfig.mode = GPIO_MODE_INPUT;
+  ioconfig.pull_up_en = GPIO_PULLUP_ENABLE;
+  ioconfig.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  ioconfig.intr_type = GPIO_INTR_NEGEDGE;
+  gpio_config(&ioconfig);
+  gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
+  gpio_isr_handler_add((gpio_num_t)Settings.accelInterruptPin, &accelerometerISR, NULL);
 
-  g_accelInterruptFlag = false;
   LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
 }
@@ -388,13 +398,12 @@ void LumaVibe_clearError(void) {
 
 //
 void LumaVibe_detachAccelInterrupt() {
-  detachInterrupt(Settings.accelInterruptPin);
+  gpio_intr_disable((gpio_num_t)Settings.accelInterruptPin);
 }
 
 //
 void LumaVibe_enableAccelInterrupt() {
-  pinMode(Settings.accelInterruptPin, INPUT_PULLUP);
-  attachInterrupt(Settings.accelInterruptPin, &accelerometerISR, FALLING);
+  gpio_intr_enable((gpio_num_t)Settings.accelInterruptPin);
 }
 
 //
@@ -437,7 +446,8 @@ void LumaVibe_goToSleep(void) {
   // SerialUSB.end(); DON'T DO THIS
   LumaVibe_enableAccelInterrupt();
   esp_sleep_enable_timer_wakeup(Settings.sleepTime_ms * 1000);
-  esp_sleep_enable_ext0_wakeup((gpio_num_t)Settings.accelInterruptPin, LOW);
+  gpio_wakeup_enable((gpio_num_t)Settings.accelInterruptPin, GPIO_INTR_LOW_LEVEL); // edge interrupt not supported
+  esp_sleep_enable_gpio_wakeup();
   
   esp_light_sleep_start();
   g_bootCount++;
