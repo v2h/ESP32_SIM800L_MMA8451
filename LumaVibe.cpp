@@ -174,7 +174,7 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
   timerAlarmWrite(watchDogTimer, s->watchDogTime_ms * 1000, false);
   timerAlarmEnable(watchDogTimer);
 
-  PRINTF("g_bootCount: %lu\n", (long)g_bootCount);
+  PRINTF("g_bootCount: %lu\r\n", (long)g_bootCount);
   if (1 == g_bootCount) {
     timeval rtcTime = {0, 0};
     settimeofday(&rtcTime, NULL); // set rtc time to POSIX-zero
@@ -186,7 +186,7 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
   if (ESP_OK != err) return LUMAVIBE_ERROR_SENSOR_INIT;
 
   mqtt.setServer(Settings.mqttBroker, 1883);
-  PRINTF("broker: %s\n", s->mqttBroker);
+  PRINTF("broker: %s\r\n", s->mqttBroker);
 
   // Turn of Bluetooth and Wifi
   btStop();
@@ -203,7 +203,7 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
 LumaVibe_Error_t LumaVibe_begin() {
   uint8_t whoami = 0xFF;
   MMA8451_I2C_readReg8(accel.i2cAddress, MMA8451_REG_WHOAMI, &whoami, 1);
-  PRINTF("who am i: %d\n", whoami);
+  PRINTF("who am i: %d\r\n", whoami);
   if (MMA8451_standby(&accel) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
   if (MMA8451_setOutputDataRate(&accel, MMA8451_DATA_RATE_800Hz) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
   if (MMA8451_setHpfCutOff(&accel, MMA8451_HPF_CUTOFF_2Hz_ODR_800Hz) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
@@ -216,7 +216,7 @@ LumaVibe_Error_t LumaVibe_begin() {
   if (MMA8451_enableTransientInterrupt(&accel, false, false)) return LUMAVIBE_ERROR_SENSOR_SETTING;
   if (MMA8451_active(&accel) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
 
-  PRINTF("accel range: %d\n", accel.params.range);
+  PRINTF("accel range: %d\r\n", accel.params.range);
 
   gpio_config_t ioconfig;
   ioconfig.pin_bit_mask = (BIT(Settings.accelInterruptPin));
@@ -262,7 +262,7 @@ LumaVibe_Error_t LumaVibe_measure(time_t *timeAtMeasure_s) {
       PRINTLN(" at: ", startTime);
     }
   }
-  PRINTF("Stop time: %lu\n", millis());
+  PRINTF("Stop time: %lu\r\n", millis());
   LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
 }
@@ -278,7 +278,7 @@ LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked
   if (NULL == PackBuffer) {
     return LUMAVIBE_ERROR_NOT_ENOUGH_MEMORY;
   }
-  PRINTS("Packing header\n");
+  PRINTS("Packing header\r\n");
   mpack_writer_t writer;
   mpack_writer_init(&writer, PackBuffer, MQTT_DATA_PACKBUFFER_SIZE);
   mpack_start_map(&writer, 15);
@@ -299,13 +299,13 @@ LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked
   mpack_write_cstr(&writer, StringToPack.bootcount);    mpack_write_u32(&writer, (uint32_t)g_bootCount);
 
   // ..to here
-  PRINTF("Packing array of %d elements\n", Settings.numberOfMeas);
+  PRINTF("Packing array of %d elements\r\n", Settings.numberOfMeas);
   const char *entries[] = {StringToPack.x_accel, StringToPack.y_accel, StringToPack.z_accel};
   LumaVibe_packArray(&writer, entries, Settings.numberOfMeas);
   *bytesPacked = mpack_writer_buffer_used(&writer);
   mpack_finish_map(&writer);
   if (mpack_ok != mpack_writer_destroy(&writer)) {
-    PRINTS("Error destroying writer\n");
+    PRINTS("Error destroying writer\r\n");
     return LUMAVIBE_ERROR_PACKING_NOT_FINISHED;
   }
 
@@ -346,7 +346,7 @@ void LumaVibe_logError(LumaVibe_Error_t error, uint16_t line) {
   ErrorStream[ErrorStreamWriter++] = (uint8_t)error;
 
   char errorString[40];
-  sprintf(errorString, "Error: %u at line: %u\n", error, line);
+  sprintf(errorString, "Error: %u at line: %u\r\n", error, line);
   PRINTS(errorString);
 }
 
@@ -372,7 +372,7 @@ LumaVibe_Error_t LumaVibe_packError(uint32_t *bytesPacked) {
   if (NULL == PackBuffer) {
     return LUMAVIBE_ERROR_NOT_ENOUGH_MEMORY;
   }
-  PRINTS("Packing error header\n");
+  PRINTS("Packing error header\r\n");
   mpack_writer_t writer;
   mpack_writer_init(&writer, PackBuffer, MQTT_ERROR_PACKBUFFER_SIZE);
   mpack_start_map(&writer, 3);
@@ -385,7 +385,7 @@ LumaVibe_Error_t LumaVibe_packError(uint32_t *bytesPacked) {
   }
   *bytesPacked = mpack_writer_buffer_used(&writer);
   if (mpack_ok != mpack_writer_destroy(&writer)) {
-    PRINTS("Error destroying writer\n");
+    PRINTS("Error destroying writer\r\n");
     return LUMAVIBE_ERROR_PACKING_NOT_FINISHED;
   }
   LumaVibe_keepAlive();
@@ -428,30 +428,30 @@ void LumaVibe_setPeriod(uint32_t period_s) {
 void LumaVibe_goToSleep(void) {
   LumaVibe_keepAlive();
   LumaVibe_clearLED();
-  PRINTS("Going to sleep..\n");
-  PRINTF("Sleep time: %lu\n", (long)Settings.sleepTime_ms);
+  PRINTS("Going to sleep..\r\n");
+  PRINTF("Sleep time: %lu\r\n", (long)Settings.sleepTime_ms);
   if (modem.isGprsConnected()) {
     if (modem.gprsDisconnect()) {
-      PRINTS("GPRS disconnected\n");
+      PRINTS("GPRS disconnected\r\n");
     }
   }
   if (btStop()) {
-    PRINTS("Bluetooth stopped\n");
+    PRINTS("Bluetooth stopped\r\n");
   }
   if (WiFi.mode(WIFI_OFF)) {
-    PRINTS("Wifi off\n");
+    PRINTS("Wifi off\r\n");
   }
 #ifdef TTGO
   if (modem.sleepEnable()) {
-    PRINTS("Modem put to sleep\n");
+    PRINTS("Modem put to sleep\r\n");
   }
   if (LumaVibe_setPowerBoostKeepOn(false)) {
-    PRINTS("Power boost turned off\n");
+    PRINTS("Power boost turned off\r\n");
   }
   LumaVibe_disableModem();
 #endif
   LumaVibe_keepAlive();
-  PRINTS("Goodnight!\n");
+  PRINTS("Goodnight!\r\n");
   // SerialUSB.flush();
   SerialAT.end();
   delay(3000);
@@ -535,19 +535,19 @@ static void LumaVibe_keepAlive() {
 static LumaVibe_Error_t LumaVibe_setupModem() {
   LumaVibe_setPowerBoostKeepOn(true);
   LumaVibe_enableModem();
-  PRINTS("Setting up modem\n");
+  PRINTS("Setting up modem\r\n");
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
   LumaVibe_delay(3000);
-  PRINTS("waiting for network...\n");
+  PRINTS("waiting for network...\r\n");
   uint32_t start = millis();
   while (!modem.isNetworkConnected() && millis() - start < 30000) {
     LumaVibe_keepAlive();
   }
   if (!modem.isNetworkConnected())
     return LUMAVIBE_ERROR_MODEM_NETWORK_NOT_CONNECTED;
-  PRINTS("network connected...\n");
+  PRINTS("network connected...\r\n");
   LumaVibe_keepAlive();
-  PRINTS("connecting to GPRS..\n");
+  PRINTS("connecting to GPRS..\r\n");
   uint8_t gprsTry = 0;
   do {
     PRINT("retry..", gprsTry);
@@ -558,7 +558,7 @@ static LumaVibe_Error_t LumaVibe_setupModem() {
   if (!modem.isGprsConnected()) {
     return LUMAVIBE_ERROR_MODEM_GPRS_NOT_CONNECTED;
   }
-  PRINTS("\nGPRS connected\n");
+  PRINTS("\nGPRS connected\r\n");
 
   int16_t signalQuality = modem.getSignalQuality();
   PRINTLN("Signal quality: ", signalQuality);
@@ -574,7 +574,7 @@ static LumaVibe_Error_t LumaVibe_syncTimeWithNetwork(time_t timeAtMeasure_s, cha
   tm timeBuffer;
   bool isNetWorkTimeReceived = false;
   uint8_t syncTry = 3;
-  PRINTS("Syncing time with network\n");
+  PRINTS("Syncing time with network\r\n");
   do {
     isNetWorkTimeReceived = modem.getGsmLocationTime(&timeBuffer.tm_year, &timeBuffer.tm_mon, &timeBuffer.tm_mday,
                                                       &timeBuffer.tm_hour, &timeBuffer.tm_min, &timeBuffer.tm_sec);
@@ -593,8 +593,8 @@ static LumaVibe_Error_t LumaVibe_syncTimeWithNetwork(time_t timeAtMeasure_s, cha
                                                         timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
   }
   else {
-    PRINTS("Network time retrieved: \n");
-    PRINTF("%04d-%02d-%02dT%02d:%02d:%02dZ\n", timeBuffer.tm_year, timeBuffer.tm_mon, timeBuffer.tm_mday, 
+    PRINTS("Network time retrieved: \r\n");
+    PRINTF("%04d-%02d-%02dT%02d:%02d:%02dZ\r\n", timeBuffer.tm_year, timeBuffer.tm_mon, timeBuffer.tm_mday, 
                                              timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
     struct tm now;
     getLocalTime(&now, 0);
@@ -610,7 +610,7 @@ static LumaVibe_Error_t LumaVibe_syncTimeWithNetwork(time_t timeAtMeasure_s, cha
     // Export time for further use (i.e. packing). Format: 2020-03-26T18:37:00Z
     sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", shiftedTime.tm_year + 1900, shiftedTime.tm_mon + 1, shiftedTime.tm_mday, 
                                                         shiftedTime.tm_hour, shiftedTime.tm_min, shiftedTime.tm_sec);
-    PRINTF("Time at measurement: %04d-%02d-%02dT%02d:%02d:%02dZ\n", shiftedTime.tm_year, shiftedTime.tm_mon + 1, shiftedTime.tm_mday, 
+    PRINTF("Time at measurement: %04d-%02d-%02dT%02d:%02d:%02dZ\r\n", shiftedTime.tm_year, shiftedTime.tm_mon + 1, shiftedTime.tm_mday, 
                                                                     shiftedTime.tm_hour, shiftedTime.tm_min, shiftedTime.tm_sec);
     timeval rtcTime = {networkTime_s, 0}; 
     settimeofday(&rtcTime, NULL); // Update RTC time value
@@ -619,7 +619,7 @@ static LumaVibe_Error_t LumaVibe_syncTimeWithNetwork(time_t timeAtMeasure_s, cha
     }
   }
   
-  PRINTF("timestamp: %s\n", timeStamp);
+  PRINTF("timestamp: %s\r\n", timeStamp);
   LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
 }
@@ -628,7 +628,7 @@ static LumaVibe_Error_t LumaVibe_syncTimeWithNetwork(time_t timeAtMeasure_s, cha
 static LumaVibe_Error_t LumaVibe_connectMQTT() {
   uint8_t mqttTry = 0;
   do {
-    PRINTS("Connecting MQTT\n");
+    PRINTS("Connecting MQTT\r\n");
     PRINT("..", mqttTry);
     mqtt.connect("sim800l", "user", "mqtt");
     //mqtt.connect(Settings.moduleID, Settings.mqttUserName, Settings.mqttPassword);
@@ -674,7 +674,7 @@ static LumaVibe_Error_t LumaVibe_publish(const char *publishTopic, uint32_t byte
     return LUMAVIBE_ERROR_PUBLISH_BEGIN_FAIL;
   }
   LumaVibe_keepAlive();
-  PRINTS("Publishing...\n");
+  PRINTS("Publishing...\r\n");
   PRINTLN("Bytes Total: ", bytesToPublish);
   uint8_t *pointerToBuffer = (uint8_t *)PackBuffer;
   while (bytesToPublish) {
@@ -695,12 +695,13 @@ static LumaVibe_Error_t LumaVibe_publish(const char *publishTopic, uint32_t byte
 
   free(PackBuffer);   PackBuffer = NULL;
   free(AccelDataPtr); AccelDataPtr = NULL;
-  PRINTS("Publishing done\n");
+  PRINTS("Publishing done\r\n");
   return LUMAVIBE_ERROR_NONE;
 }
 
+//
 static void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  PRINTS("Message arrived\n");
+  PRINTS("Message arrived\r\n");
   // PRINTVAL(topic);
   // PRINTVAL("");
   // for (int i = 0; i < length; i++) {
