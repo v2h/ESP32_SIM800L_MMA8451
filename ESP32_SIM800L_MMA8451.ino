@@ -43,6 +43,7 @@ void setup() { // takes 33ms
     /*measureFrequency*/      200,
     /*sleepTime_ms*/          60000 / 6,
     // /*watchDogTime_ms*/       10000 * 60,  
+    /*watchDogTime_ms*/       15000,  
     /*mqttBroker[20]*/        "mastap.net",
     /*mqttUserName[10]*/      "user",
     /*mqttPassword[10]*/      "mqtt",

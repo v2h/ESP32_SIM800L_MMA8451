@@ -40,6 +40,7 @@ static TinyGsm       modem(SerialAT);
 static TinyGsmClient client(modem);
 static PubSubClient  mqtt(client);
 static CRGB          led[NUM_LEDS];
+static hw_timer_t *  watchDogTimer = NULL;
 
 static const struct {
   const char * const timestamp    = "timestamp";
@@ -87,6 +88,10 @@ static void IRAM_ATTR accelerometerISR(void *arg) {
   portENTER_CRITICAL_ISR(&g_mux);
   g_accelInterruptFlag = true;
   portEXIT_CRITICAL_ISR(&g_mux);
+}
+
+static void watchDogISR(void) {
+  esp_restart();
 }
 
 
@@ -155,12 +160,19 @@ void LumaVibe_enableModem() {
 
 //
 LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
-  if (0 == s->sleepTime_ms) {
+  rtc_wdt_disable();
+  if (0 == s->sleepTime_ms || 0 == s->watchDogTime_ms) {
     return LUMAVIBE_ERROR_TIME_ZERO;
   }
   if (0 == s->measureFrequency || s->measureFrequency > 1000) {
     return LUMAVIBE_ERROR_FREQUENCY;
   }
+
+  watchDogTimer = timerBegin(WATCHDOG_TIMER_NUMBER, FCLK_DIVIDER, true);
+  if (NULL == watchDogTimer) return LUMAVIBE_ERROR_TIMER_NULL;
+  timerAttachInterrupt(watchDogTimer, watchDogISR, true);
+  timerAlarmWrite(watchDogTimer, s->watchDogTime_ms * 1000, false);
+  timerAlarmEnable(watchDogTimer);
 
   PRINTF("g_bootCount: %lu\n", (long)g_bootCount);
   if (1 == g_bootCount) {
@@ -449,12 +461,14 @@ void LumaVibe_goToSleep(void) {
   gpio_wakeup_enable((gpio_num_t)Settings.accelInterruptPin, GPIO_INTR_LOW_LEVEL); // edge interrupt not supported
   esp_sleep_enable_gpio_wakeup();
   
+  timerAlarmDisable(watchDogTimer);
   
   esp_light_sleep_start();
   //SerialUSB.begin(115200);
 
   g_bootCount++;
   LumaVibe_detachAccelInterrupt();
+  timerAlarmEnable(watchDogTimer);
 }
 
 //
@@ -508,6 +522,7 @@ static void LumaVibe_dumpSimInfo() {
 //
 static void LumaVibe_keepAlive() {
   rtc_wdt_feed();
+  timerWrite(watchDogTimer, 0);
 }
 
 //

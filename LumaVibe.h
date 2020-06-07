@@ -44,7 +44,7 @@ typedef struct {
   uint16_t numberOfMeas;
   uint16_t measureFrequency;
   uint64_t sleepTime_ms;
-  // uint64_t watchDogTime_ms;
+  uint64_t watchDogTime_ms;
   char     mqttBroker[20];
   char     mqttUserName[10];
   char     mqttPassword[10];
