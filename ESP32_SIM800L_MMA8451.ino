@@ -16,6 +16,9 @@
 #include "LumaVibe.h"
 #include "debug_macros.h"
 #include "ota_updater.h"
+#include "helper_macros.h"
+
+xTaskHandle mainTaskHandle = NULL;
 
 void printLocalTime(void);
 
@@ -43,6 +46,7 @@ void setup() { // takes 33ms
     /*measureFrequency*/      200,
     /*sleepTime_ms*/          60000 / 6,
     // /*watchDogTime_ms*/       10000 * 60,  
+    /*sleepTime_ms*/          60000,
     /*watchDogTime_ms*/       15000,  
     /*mqttBroker[20]*/        "mastap.net",
     /*mqttUserName[10]*/      "user",
@@ -60,31 +64,35 @@ void setup() { // takes 33ms
     LumaVibe_LOG_ERROR(err);
   LumaVibe_setLED(CRGB::Yellow);
   
-
   err = LumaVibe_begin();
   if (LUMAVIBE_ERROR_NONE != err)
     LumaVibe_LOG_ERROR(err);
 
   PRINTF("Setup took %lu ms\n", millis() - setupTimer);
   PRINTS("End of setup()\n");
+  xTaskCreatePinnedToCore(LumaVibe_main, str(LumaVibe_main), 2000, NULL, 5, &mainTaskHandle, 1);
 }
 
 //
 void loop() {
-  if (0 == g_bootCount) {
-    // delay(5000);
-    if (g_accelInterruptFlag) {
-      LumaVibe_clearAccelInterrupt();
-      portENTER_CRITICAL(&g_mux);
-      g_accelInterruptFlag = false;
-      portEXIT_CRITICAL(&g_mux);
-      PRINTS("First boot\n");
-      
-      LumaVibe_goToSleep();
+  delay(1);
+}
+
+void LumaVibe_main(void *param) {
+  for (;;) {
+    if (0 == g_bootCount) {
+      delay(5000);
+      if (g_accelInterruptFlag) {
+        LumaVibe_clearAccelInterrupt();
+        portENTER_CRITICAL(&g_mux);
+        g_accelInterruptFlag = false;
+        portEXIT_CRITICAL(&g_mux);
+        PRINTS("First boot\n");
+        
+        LumaVibe_goToSleep();
+      }
     }
-  }
   
-  if (g_accelInterruptFlag) {
     uint64_t start = millis();
     // PRINTLN("accelInterruptFlag: ", g_accelInterruptFlag);
 
