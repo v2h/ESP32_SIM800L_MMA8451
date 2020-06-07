@@ -80,6 +80,6 @@ const char* serverIndex =
   "</script>";
 
 
-void ota_updater_begin();
+void ota_updater_begin(gpio_num_t interruptPin);
 
 #endif // OTA_UPDATER_H

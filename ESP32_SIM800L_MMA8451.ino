@@ -77,7 +77,7 @@ void LumaVibe_main(void *param) {
     if (g_isEmergency) {
       LumaVibe_detachAccelInterrupt();
       PRINTS("Re-entering emergency mode\r\n");
-      ota_updater_begin();
+      ota_updater_begin((gpio_num_t)(ACCEL_INTERRUPT_PIN));
     }
     if (0 == g_bootCount) {
       delay(5000);
@@ -129,10 +129,7 @@ void LumaVibe_main(void *param) {
       if (LumaVibe_countNetworkError() >= MAX_NETWORK_ERROR_COUNT || LumaVibe_countError() >= MAX_ERROR_COUNT) {
         // Jump to emergency-OTA
         // LumaVibe_endWatchDog();
-        LumaVibe_disableModem();
-        LumaVibe_setPowerBoostKeepOn(false);
-        LumaVibe_setLED(CRGB::Red);
-        ota_updater_begin();
+        ota_updater_begin((gpio_num_t)(ACCEL_INTERRUPT_PIN));
       }
       else { // Publish list of (not so critical) errors
         uint32_t bytesPacked;

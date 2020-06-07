@@ -19,7 +19,11 @@ bool RTC_DATA_ATTR g_isEmergency;
 static uint8_t RTC_DATA_ATTR sleepCount = 0;
 static bool isLedOn = false;
 
-void ota_updater_begin() {
+void ota_updater_begin(gpio_num_t interruptPin) {
+  LumaVibe_endWatchdog();
+  LumaVibe_disableModem();
+  LumaVibe_setPowerBoostKeepOn(false);
+  LumaVibe_setLED(CRGB::Red);
   ArduinoOTA
     .onStart([]() {
       String type;
@@ -78,16 +82,15 @@ void ota_updater_begin() {
       if (WiFi.mode(WIFI_OFF)) {
         SerialUSB.println("Wifi off");
       }
+      SerialUSB.println("Sleeping\r\n");
       delay(1000); // (!?)
       LumaVibe_setLED(CRGB::Red);
       gpio_hold_en((gpio_num_t)LED_PIN);
       gpio_deep_sleep_hold_en();
       esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL); // (!?)
       esp_sleep_enable_timer_wakeup(SLEEPTIME_MINUTE_TO_uS);
-      SerialUSB.println("Sleeping");
-      delay(1000);
-      SerialUSB.flush();
       g_isEmergency = true;
+      esp_sleep_enable_ext0_wakeup(interruptPin, 0);
       esp_deep_sleep_start();      
     }
   }
