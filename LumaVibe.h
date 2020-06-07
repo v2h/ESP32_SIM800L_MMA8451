@@ -83,6 +83,7 @@ void LumaVibe_goToSleep(void);
 void LumaVibe_setLED(CRGB::HTMLColorCode color);
 void LumaVibe_clearLED();
 void LumaVibe_flashLED(CRGB::HTMLColorCode color, uint16_t duration_ms, uint8_t numberOfTimes, bool retainColor);
+void LumaVibe_endWatchdog();
 
 // Must be first defined in the main file
 // Declared with 'extern' so other files can use..
