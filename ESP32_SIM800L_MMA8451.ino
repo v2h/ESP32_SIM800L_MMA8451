@@ -28,13 +28,6 @@ void setup() { // takes 33ms
   SerialUSB.println("MAC address: " + WiFi.macAddress());
   SerialUSB.println("Firmware version: " + String(FIRMWARE_VERSION));
 
-  // This checks if the board wakes up from emergency-OTA
-  if (g_isEmergency) {
-    LumaVibe_detachAccelInterrupt();
-    PRINTS("Re-entering emergency mode\n");
-    ota_updater_begin();
-  }
-
   // For pin defines, change them in LumaVibe_globals.h
   // https://www.reddit.com/r/FastLED/comments/e4w6xh/not_usable_in_a_constant_expression/
   LumaVibe_Settings_t settings = {
@@ -78,6 +71,12 @@ void loop() {
 
 void LumaVibe_main(void *param) {
   for (;;) {
+    // This checks if the board wakes up from emergency-OTA
+    if (g_isEmergency) {
+      LumaVibe_detachAccelInterrupt();
+      PRINTS("Re-entering emergency mode\r\n");
+      ota_updater_begin();
+    }
     if (0 == g_bootCount) {
       delay(5000);
       if (g_accelInterruptFlag) {
