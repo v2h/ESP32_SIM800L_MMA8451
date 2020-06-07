@@ -84,7 +84,7 @@ void ota_updater_begin(gpio_num_t interruptPin) {
       }
       SerialUSB.println("Sleeping\r\n");
       delay(1000); // (!?)
-      LumaVibe_setLED(CRGB::Red);
+      LumaVibe_clearLED();
       gpio_hold_en((gpio_num_t)LED_PIN);
       gpio_deep_sleep_hold_en();
       esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL); // (!?)
