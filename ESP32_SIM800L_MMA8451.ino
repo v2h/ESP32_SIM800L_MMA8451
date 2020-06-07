@@ -66,7 +66,9 @@ void setup() { // takes 33ms
 
 //
 void loop() {
+  PRINTS("Loop\r\n");
   delay(1);
+  vTaskDelete(NULL);
 }
 
 void LumaVibe_main(void *param) {
