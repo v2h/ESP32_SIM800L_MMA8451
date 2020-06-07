@@ -38,7 +38,7 @@ void ota_updater_begin() {
       SerialUSB.printf("Progress: %u%%\r", (progress / (total / 100)));
     })
     .onError([](ota_error_t error) {
-      SerialUSB.printf("Error[%u]: ", error);
+      SerialUSB.printf("Error[%u]: \n", error);
       if (error == OTA_AUTH_ERROR) SerialUSB.println("Auth Failed");
       else if (error == OTA_BEGIN_ERROR) SerialUSB.println("Begin Failed");
       else if (error == OTA_CONNECT_ERROR) SerialUSB.println("Connect Failed");
