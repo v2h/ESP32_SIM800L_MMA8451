@@ -11,6 +11,11 @@
     Serial.print(v);    \
   } while(0)            \
 
+#define PRINTLN(s,v) do { \
+    Serial.print(F(s)); \
+    Serial.println(v);    \
+  } while(0)   
+
 #define PRINTHEX(s,v) do { \
     Serial.print(F(s));    \
     Serial.print(F("0x")); \
@@ -23,6 +28,7 @@
 #else
 #define PRINTS(s)
 #define PRINT(s,v)
+#define PRINTLN(s,v)
 #define PRINTHEX(s,v)
 #define PRINTVAL(v)
 #define PRINTF(f_, ...)

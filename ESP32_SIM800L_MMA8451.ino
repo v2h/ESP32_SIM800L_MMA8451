@@ -44,8 +44,6 @@ void setup() { // takes 33ms
     /*accelInterruptPin*/     ACCEL_INTERRUPT_PIN,
     /*numberOfMeas*/          2048,
     /*measureFrequency*/      200,
-    /*sleepTime_ms*/          60000 / 6,
-    // /*watchDogTime_ms*/       10000 * 60,  
     /*sleepTime_ms*/          60000,
     /*watchDogTime_ms*/       15000,  
     /*mqttBroker[20]*/        "mastap.net",
@@ -121,17 +119,6 @@ void LumaVibe_main(void *param) {
     
     LumaVibe_getCommandsFromServer("ngd/demo/HSRW_Hung/command");
     
-
-    /*
-    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_PUBLISH_BEGIN_FAIL;
-    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_SENSOR_INIT;
-    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_MODEM_GPRS_NOT_CONNECTED;
-    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_MODEM_GPRS_NOT_CONNECTED;
-    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_MODEM_GPRS_NOT_CONNECTED;
-    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_MODEM_GPRS_NOT_CONNECTED;
-    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_MODEM_GPRS_NOT_CONNECTED;
-    LumaVibe__errorStream[LumaVibe__errorStreamWriter++] = (uint8_t)LumaVibe_ERROR_MODEM_GPRS_NOT_CONNECTED;
-    */
     printLocalTime();
 
     PRINTF("Error Count: %d\n", LumaVibe_countError());

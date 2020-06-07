@@ -84,7 +84,7 @@ static void LumaVibe_delay(uint64_t milliSeconds);
 /*
 // Interrupt(s) -------------------------------------
 */
-static void IRAM_ATTR accelerometerISR(void *arg) {
+static void accelerometerISR(void *arg) {
   portENTER_CRITICAL_ISR(&g_mux);
   g_accelInterruptFlag = true;
   portEXIT_CRITICAL_ISR(&g_mux);
@@ -240,15 +240,17 @@ LumaVibe_Error_t LumaVibe_measure(time_t *timeAtMeasure_s) {
   if (NULL == AccelDataPtr) {
     return LUMAVIBE_ERROR_NOT_ENOUGH_MEMORY;
   }
-  uint32_t startTime = millis();
   struct tm now;
   getLocalTime(&now, 0);
   *timeAtMeasure_s = mktime(&now);
 
   uint8_t measureInterval_ms = 1000 / Settings.measureFrequency;
   MMA8451_Data_t data;
+  uint32_t startTime = millis();
   for (uint16_t index = 0; index  < Settings.numberOfMeas; index++) {
-    while (millis() - startTime < measureInterval_ms);
+    while (millis() - startTime < measureInterval_ms) {
+      LumaVibe_keepAlive();
+    }
     startTime = millis();
     MMA8451_readData(&accel, &data);
     AccelDataPtr[index].xi = data.xi;
@@ -259,7 +261,6 @@ LumaVibe_Error_t LumaVibe_measure(time_t *timeAtMeasure_s) {
       PRINT("Index: ", index);
       PRINTLN(" at: ", startTime);
     }
-    LumaVibe_keepAlive();
   }
   PRINTF("Stop time: %lu\n", millis());
   LumaVibe_keepAlive();
@@ -451,24 +452,23 @@ void LumaVibe_goToSleep(void) {
 #endif
   LumaVibe_keepAlive();
   PRINTS("Goodnight!\n");
-  SerialUSB.flush();
+  // SerialUSB.flush();
   SerialAT.end();
   delay(3000);
+  LumaVibe_keepAlive();
   //SerialUSB.end();
 
   LumaVibe_enableAccelInterrupt();
   esp_sleep_enable_timer_wakeup(Settings.sleepTime_ms * 1000);
   gpio_wakeup_enable((gpio_num_t)Settings.accelInterruptPin, GPIO_INTR_LOW_LEVEL); // edge interrupt not supported
   esp_sleep_enable_gpio_wakeup();
-  
   timerAlarmDisable(watchDogTimer);
   
   esp_light_sleep_start();
-  //SerialUSB.begin(115200);
-
-  g_bootCount++;
   LumaVibe_detachAccelInterrupt();
   timerAlarmEnable(watchDogTimer);
+  LumaVibe_keepAlive();
+  g_bootCount++;
 }
 
 //
@@ -521,8 +521,8 @@ static void LumaVibe_dumpSimInfo() {
 
 //
 static void LumaVibe_keepAlive() {
-  rtc_wdt_feed();
   timerWrite(watchDogTimer, 0);
+  delay(1);
 }
 
 //
@@ -553,6 +553,10 @@ static LumaVibe_Error_t LumaVibe_setupModem() {
     return LUMAVIBE_ERROR_MODEM_GPRS_NOT_CONNECTED;
   }
   PRINTS("\nGPRS connected\n");
+
+  int16_t signalQuality = modem.getSignalQuality();
+  PRINTLN("Signal quality: ", signalQuality);
+  
   LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
 }
@@ -668,13 +672,13 @@ static LumaVibe_Error_t LumaVibe_publish(const char *publishTopic, uint32_t byte
   PRINTLN("Bytes Total: ", bytesToPublish);
   uint8_t *pointerToBuffer = (uint8_t *)PackBuffer;
   while (bytesToPublish) {
-    PRINTLN("Bytes left: ", bytesToPublish);
+    // PRINTLN("Bytes left: ", bytesToPublish);
     uint16_t bytesToWrite = (bytesToPublish > bytesToPublish % bytesPerWrite ? bytesPerWrite : bytesToPublish % bytesPerWrite);
     uint16_t bytesWritten = mqtt.write(pointerToBuffer, bytesToWrite);
     bytesToPublish -= bytesWritten;
     pointerToBuffer += bytesWritten;
     mqtt.loop();
-    yield();
+    LumaVibe_keepAlive();
     if (MQTT_CONNECTED != mqtt.state()) {
       return LUMAVIBE_ERROR_MQTT_NOT_CONNECTED;
     }

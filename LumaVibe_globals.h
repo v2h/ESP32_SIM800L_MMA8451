@@ -34,9 +34,9 @@
 #endif // TTGO
 
 #define FCLK_DIVIDER          80
-// #define WATCHDOG_TIMER_NUMBER 1
+#define WATCHDOG_TIMER_NUMBER 1
 
-#define DEBUG_MACROS_ENABLE 0 // 0 means disabling the printouts
+#define DEBUG_MACROS_ENABLE 1 // 0 means disabling the printouts
 
 #define ERROR_STREAM_SIZE 20
 #define MAX_ERROR_COUNT (ERROR_STREAM_SIZE - 4)
