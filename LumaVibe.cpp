@@ -84,12 +84,6 @@ static void LumaVibe_delay(uint64_t milliSeconds);
 /*
 // Interrupt(s) -------------------------------------
 */
-static void accelerometerISR(void *arg) {
-  portENTER_CRITICAL_ISR(&g_mux);
-  g_accelInterruptFlag = true;
-  portEXIT_CRITICAL_ISR(&g_mux);
-}
-
 static void watchDogISR(void) {
   esp_restart();
 }
@@ -226,7 +220,6 @@ LumaVibe_Error_t LumaVibe_begin() {
   ioconfig.intr_type = GPIO_INTR_NEGEDGE;
   gpio_config(&ioconfig);
   gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
-  gpio_isr_handler_add((gpio_num_t)Settings.accelInterruptPin, &accelerometerISR, NULL);
 
   LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
