@@ -59,15 +59,15 @@ void setup() { // takes 33ms
   if (LUMAVIBE_ERROR_NONE != err)
     LumaVibe_LOG_ERROR(err);
 
-  PRINTF("Setup took %lu ms\n", millis() - setupTimer);
-  PRINTS("End of setup()\n");
-  xTaskCreatePinnedToCore(LumaVibe_main, str(LumaVibe_main), 2000, NULL, 5, &mainTaskHandle, 1);
+  PRINTF("Setup took %lu ms\r\n", millis() - setupTimer);
+  PRINTS("End of setup()\r\n");
+  xTaskCreatePinnedToCore(LumaVibe_main, str(LumaVibe_main), 20000, NULL, 1, &mainTaskHandle, 1);
+  vTaskDelete(NULL);
 }
 
 //
 void loop() {
   PRINTS("Loop\r\n");
-  delay(1);
   vTaskDelete(NULL);
 }
 
@@ -80,21 +80,23 @@ void LumaVibe_main(void *param) {
       ota_updater_begin((gpio_num_t)(ACCEL_INTERRUPT_PIN));
     }
     if (0 == g_bootCount) {
-      delay(5000);
-      if (g_accelInterruptFlag) {
-        LumaVibe_clearAccelInterrupt();
-        portENTER_CRITICAL(&g_mux);
-        g_accelInterruptFlag = false;
-        portEXIT_CRITICAL(&g_mux);
-        PRINTS("First boot\n");
+      LumaVibe_goToSleep();
+      // delay(5000);
+      // if (g_accelInterruptFlag) {
+      //   LumaVibe_clearAccelInterrupt();
+      //   portENTER_CRITICAL(&g_mux);
+      //   g_accelInterruptFlag = false;
+      //   portEXIT_CRITICAL(&g_mux);
+      //   PRINTS("First boot\n");
         
-        LumaVibe_goToSleep();
-      }
+      //   LumaVibe_goToSleep();
+      // }
     }
+
+    esp_sleep_wakeup_cause_t wakeCause = esp_sleep_get_wakeup_cause();
+    if (wakeCause == ESP_SLEEP_WAKEUP_GPIO) g_accelInterruptFlag = true;
   
     uint64_t start = millis();
-    // PRINTLN("accelInterruptFlag: ", g_accelInterruptFlag);
-
     LumaVibe_Error_t err;
 
     LumaVibe_setLED(CRGB::Purple);
