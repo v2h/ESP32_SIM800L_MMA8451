@@ -13,6 +13,7 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 
 #include "custom_src\phy\mma8451_i2c.h"
 #include "custom_src\bsp\mma8451_registers.h"
+#include "ota_updater.h"
 
 #define MQTT_DATA_PACKBUFFER_SIZE  40000
 #define MQTT_ERROR_PACKBUFFER_SIZE 1000
@@ -691,6 +692,8 @@ static LumaVibe_Error_t LumaVibe_publish(const char *publishTopic, uint32_t byte
   free(PackBuffer);   PackBuffer = NULL;
   free(AccelDataPtr); AccelDataPtr = NULL;
   PRINTS("Publishing done\r\n");
+  delay(3000);
+  LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
 }
 
@@ -703,9 +706,10 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
     PRINTVAL((char)payload[i]);
   }
   PRINTVAL("");
+
   mpack_reader_t reader;
   mpack_reader_init_data(&reader, (char *)payload, length);
-  uint8_t count = mpack_expect_map_range(&reader, 3, 8);
+  uint8_t count = mpack_expect_map_range(&reader, 3, 9);
   PRINTLN("Number of fields: ", count);
 
   mpack_expect_cstr_match(&reader, "sender");
@@ -737,6 +741,10 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
   bool lownoise;
   lownoise = mpack_expect_bool(&reader);
 
+  mpack_expect_cstr_match(&reader, "flash");
+  bool flash = false;
+  flash = mpack_expect_bool(&reader);
+
   mpack_expect_cstr_match(&reader, "_msgid");
   char _msgid[20];
   mpack_expect_cstr(&reader, _msgid, 20);
@@ -761,4 +769,8 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
   PRINTLN("accel threshold (mg): ", accel.params.transientThresholdCount * TRANS_THS_mG_per_COUNT);
   PRINTLN("accel debcntr:", accel.params.transientDebouncCount);
   PRINTLN("accel range: ", accel.params.range);
+
+  if (flash) {
+    ota_updater_begin((gpio_num_t)Settings.accelInterruptPin);
+  }
 }
