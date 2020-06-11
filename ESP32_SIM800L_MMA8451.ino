@@ -27,6 +27,8 @@ void setup() { // takes 33ms
   SerialUSB.begin(115200);
   SerialUSB.println("MAC address: " + WiFi.macAddress());
   SerialUSB.println("Firmware version: " + String(FIRMWARE_VERSION));
+  Serial.print("Setup: priority = ");
+  Serial.println(uxTaskPriorityGet(NULL));
 
   // For pin defines, change them in LumaVibe_globals.h
   // https://www.reddit.com/r/FastLED/comments/e4w6xh/not_usable_in_a_constant_expression/
@@ -38,7 +40,7 @@ void setup() { // takes 33ms
     /*numberOfMeas*/          2048,
     /*measureFrequency*/      200,
     /*sleepTime_ms*/          60000,
-    /*watchDogTime_ms*/       15000,  
+    /*watchDogTime_ms*/       60000,  
     /*mqttBroker[20]*/        "mastap.net",
     /*mqttUserName[10]*/      "user",
     /*mqttPassword[10]*/      "mqtt",
@@ -126,8 +128,10 @@ void LumaVibe_main(void *param) {
 
     PRINTF("Error Count: %d\n", LumaVibe_countError());
     // Handle errors here
+
+
     if (0 != LumaVibe_countError()) {
-      PRINTS("There is error\n");
+      PRINTS("There is error\r\n");
       if (LumaVibe_countNetworkError() >= MAX_NETWORK_ERROR_COUNT || LumaVibe_countError() >= MAX_ERROR_COUNT) {
         // Jump to emergency-OTA
         // LumaVibe_endWatchDog();
@@ -137,7 +141,7 @@ void LumaVibe_main(void *param) {
         uint32_t bytesPacked;
         LumaVibe_Error_t err;
         //bytesPacked = 0;
-        PRINTS("Packing up error\n");
+        PRINTS("Packing up error\r\n");
         err = LumaVibe_packError(&bytesPacked);
         if (LUMAVIBE_ERROR_NONE != err) {
           LumaVibe_LOG_ERROR(err);
@@ -147,12 +151,11 @@ void LumaVibe_main(void *param) {
           LumaVibe_LOG_ERROR(err);
         } else {
           LumaVibe_clearError();
-          PRINTS("Errors cleared\n");
+          PRINTS("Errors cleared\r\n");
         }
       }
     }
-    printf("Time elapsed: %llu sec\n", (millis() - start)/1000);
-
+    printf("Time elapsed: %llu sec\r\n", (millis() - start)/1000);
     LumaVibe_flashLED(CRGB::Green, 200, 3, false);
     LumaVibe_clearAccelInterrupt();
     portENTER_CRITICAL(&g_mux);
@@ -165,6 +168,6 @@ void LumaVibe_main(void *param) {
 void printLocalTime(void) {
   struct tm now;
   getLocalTime(&now, 0); // This returns POSIX time
-  printf("System time: %04d-%02d-%02dT%02d:%02d:%02dZ\n", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, 
+  printf("System time: %04d-%02d-%02dT%02d:%02d:%02dZ\r\n", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, 
                                                        now.tm_hour, now.tm_min, now.tm_sec);
 }
