@@ -169,7 +169,7 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
   timerAlarmEnable(watchDogTimer);
 
   PRINTF("g_bootCount: %lu\r\n", (long)g_bootCount);
-  if (1 == g_bootCount) {
+  if (0 == g_bootCount) {
     timeval rtcTime = {0, 0};
     settimeofday(&rtcTime, NULL); // set rtc time to POSIX-zero
   }
@@ -316,9 +316,11 @@ LumaVibe_Error_t LumaVibe_publishData(const char *publishDataTopic, uint32_t byt
 void LumaVibe_getCommandsFromServer(const char *subscribeTopic) {
   mqtt.setCallback(mqttCallback);
   mqtt.subscribe(subscribeTopic);
+  LumaVibe_keepAlive();
   LumaVibe_delay(2000);
   mqtt.loop();
   LumaVibe_delay(2000);
+  LumaVibe_keepAlive();
   mqtt.loop();
   mqtt.disconnect();
 }
@@ -695,12 +697,12 @@ static LumaVibe_Error_t LumaVibe_publish(const char *publishTopic, uint32_t byte
 //
 static void mqttCallback(char* topic, byte* payload, unsigned int length) {
   PRINTS("Message arrived\r\n");
-  // PRINTVAL(topic);
-  // PRINTVAL("");
-  // for (int i = 0; i < length; i++) {
-  //   PRINTVAL((char)payload[i]);
-  // }
-  // PRINTVAL("");
+  PRINTVAL(topic);
+  PRINTVAL("");
+  for (int i = 0; i < length; i++) {
+    PRINTVAL((char)payload[i]);
+  }
+  PRINTVAL("");
   mpack_reader_t reader;
   mpack_reader_init_data(&reader, (char *)payload, length);
   uint8_t count = mpack_expect_map_range(&reader, 3, 8);
