@@ -221,10 +221,11 @@ LumaVibe_Error_t LumaVibe_begin() {
   gpio_config(&ioconfig);
   gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
 
-  LumaVibe_keepAlive();
-  LumaVibe_setupModem();
-  LumaVibe_keepAlive();
-  LumaVibe_syncLocalTime();
+  if (0 == g_bootCount) {
+    LumaVibe_keepAlive();
+    LumaVibe_setupModem();
+    LumaVibe_syncLocalTime();
+  }
   LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
 }
