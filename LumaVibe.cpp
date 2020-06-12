@@ -9,7 +9,6 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 #include <WiFi.h>
 #include <Wire.h>
 #include "debug_macros.h"
-#include "soc/rtc_wdt.h"
 
 #include "custom_src\phy\mma8451_i2c.h"
 #include "custom_src\bsp\mma8451_registers.h"
@@ -155,7 +154,6 @@ void LumaVibe_enableModem() {
 
 //
 LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
-  rtc_wdt_disable();
   if (0 == s->sleepTime_ms || 0 == s->watchDogTime_ms) {
     return LUMAVIBE_ERROR_TIME_ZERO;
   }
