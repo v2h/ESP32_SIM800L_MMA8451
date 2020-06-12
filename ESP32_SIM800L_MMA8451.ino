@@ -25,7 +25,7 @@ xTaskHandle idleTaskHandle = NULL;
 void printLocalTime(void);
 
 void setup() { // takes 33ms
-  xTaskCreatePinnedToCore(LumaVibe_setup, str(LumaVibe_setup), 20000, NULL, 1, &mainTaskHandle, 1);
+  xTaskCreatePinnedToCore(LumaVibe_setup, str(LumaVibe_setup), 20000, NULL, 1, &setupTaskHandle, 1);
   xTaskCreatePinnedToCore(LumaVibe_idle, str(LumaVibe_idle), 2000, NULL, 1, &idleTaskHandle, 1);
   vTaskDelete(NULL);
 }
