@@ -19,10 +19,30 @@
 #include "helper_macros.h"
 
 xTaskHandle mainTaskHandle = NULL;
+xTaskHandle setupTaskHandle = NULL;
+xTaskHandle idleTaskHandle = NULL;
 
 void printLocalTime(void);
 
 void setup() { // takes 33ms
+  xTaskCreatePinnedToCore(LumaVibe_setup, str(LumaVibe_setup), 20000, NULL, 1, &mainTaskHandle, 1);
+  xTaskCreatePinnedToCore(LumaVibe_idle, str(LumaVibe_idle), 2000, NULL, 1, &idleTaskHandle, 1);
+  vTaskDelete(NULL);
+}
+
+//
+void loop() {
+  PRINTS("Loop\r\n");
+  vTaskDelete(NULL);
+}
+
+void LumaVibe_idle(void *param) {
+  for (;;) {
+    delay(1);
+  }
+}
+
+void LumaVibe_setup(void *param) {
   uint32_t setupTimer = millis();
   SerialUSB.begin(115200);
   SerialUSB.println("MAC address: " + WiFi.macAddress());
@@ -64,12 +84,6 @@ void setup() { // takes 33ms
   PRINTF("Setup took %lu ms\r\n", millis() - setupTimer);
   PRINTS("End of setup()\r\n");
   xTaskCreatePinnedToCore(LumaVibe_main, str(LumaVibe_main), 20000, NULL, 1, &mainTaskHandle, 1);
-  vTaskDelete(NULL);
-}
-
-//
-void loop() {
-  PRINTS("Loop\r\n");
   vTaskDelete(NULL);
 }
 
