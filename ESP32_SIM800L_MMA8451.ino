@@ -97,16 +97,6 @@ void LumaVibe_main(void *param) {
     }
     if (0 == g_bootCount) {
       LumaVibe_goToSleep();
-      // delay(5000);
-      // if (g_accelInterruptFlag) {
-      //   LumaVibe_clearAccelInterrupt();
-      //   portENTER_CRITICAL(&g_mux);
-      //   g_accelInterruptFlag = false;
-      //   portEXIT_CRITICAL(&g_mux);
-      //   PRINTS("First boot\n");
-        
-      //   LumaVibe_goToSleep();
-      // }
     }
 
     esp_sleep_wakeup_cause_t wakeCause = esp_sleep_get_wakeup_cause();
