@@ -74,12 +74,13 @@ static const uint16_t DividerStr[(uint8_t)MMA8451_RANGE_MAX] = {
 static void LumaVibe_dumpSimInfo();
 static void LumaVibe_keepAlive();
 static LumaVibe_Error_t LumaVibe_setupModem();
-static LumaVibe_Error_t LumaVibe_syncTimeWithNetwork(time_t timeAtMeasure_s, char timeStamp[21]);
+static LumaVibe_Error_t LumaVibe_getTimeStamp(time_t timeAtMeasure_s, char timeStamp[21]);
 static LumaVibe_Error_t LumaVibe_connectMQTT();
 static void LumaVibe_packArray(mpack_writer_t *writer, const char *entryNames[3], const uint16_t length);
 static LumaVibe_Error_t LumaVibe_publish(const char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite);
 static void mqttCallback(char* topic, byte* payload, unsigned int length);
 static void LumaVibe_delay(uint64_t milliSeconds);
+static LumaVibe_Error_t LumaVibe_syncLocalTime(void);
 
 /*
 // Interrupt(s) -------------------------------------
@@ -221,6 +222,10 @@ LumaVibe_Error_t LumaVibe_begin() {
   gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
 
   LumaVibe_keepAlive();
+  LumaVibe_setupModem();
+  LumaVibe_keepAlive();
+  LumaVibe_syncLocalTime();
+  LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
 }
 
@@ -275,7 +280,7 @@ LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked
   mpack_writer_init(&writer, PackBuffer, MQTT_DATA_PACKBUFFER_SIZE);
   mpack_start_map(&writer, 15);
   char timeStamp[21] = {0};
-  LumaVibe_syncTimeWithNetwork(timeAtMeasure_s, timeStamp);
+  LumaVibe_getTimeStamp(timeAtMeasure_s, timeStamp);
   // TODO: refactor this, from here..
   mpack_write_cstr(&writer, StringToPack.timestamp);    mpack_write_cstr(&writer, timeStamp);
   mpack_write_cstr(&writer, StringToPack.moduleID);     mpack_write_cstr(&writer, Settings.moduleID);
@@ -562,10 +567,9 @@ static LumaVibe_Error_t LumaVibe_setupModem() {
 }
 
 //
-static LumaVibe_Error_t LumaVibe_syncTimeWithNetwork(time_t timeAtMeasure_s, char timeStamp[21]) {
-  // TODO: handle possible error
+static LumaVibe_Error_t LumaVibe_syncLocalTime(void) {
   // Month of time coming from network is the actual month, month of struct tm is "months since January"
-  tm timeBuffer;
+  struct tm timeBuffer = {0};
   bool isNetWorkTimeReceived = false;
   uint8_t syncTry = 3;
   PRINTS("Syncing time with network\r\n");
@@ -574,45 +578,31 @@ static LumaVibe_Error_t LumaVibe_syncTimeWithNetwork(time_t timeAtMeasure_s, cha
                                                       &timeBuffer.tm_hour, &timeBuffer.tm_min, &timeBuffer.tm_sec);
     LumaVibe_keepAlive();
   } while (false == isNetWorkTimeReceived && syncTry-->0);
-  
-  if (false == isNetWorkTimeReceived) {
-    // Set exported time to be zero
-    if (_timeNeverSynced) {
-      memset(&timeBuffer, 0, sizeof(timeBuffer));
-    } 
-    else {
-      timeBuffer = *localtime(&timeAtMeasure_s);
-    }
-    sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", timeBuffer.tm_year + 1900, timeBuffer.tm_mon + 1, timeBuffer.tm_mday, 
-                                                        timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
-  }
-  else {
-    PRINTS("Network time retrieved: \r\n");
-    PRINTF("%04d-%02d-%02dT%02d:%02d:%02dZ\r\n", timeBuffer.tm_year, timeBuffer.tm_mon, timeBuffer.tm_mday, 
-                                             timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
-    struct tm now;
-    getLocalTime(&now, 0);
-    time_t now_s = mktime(&now); 
+  if (false == isNetWorkTimeReceived) esp_restart();
+  PRINTS("Network time retrieved: ");
+  PRINTF("%04d-%02d-%02dT%02d:%02d:%02dZ\r\n", timeBuffer.tm_year, timeBuffer.tm_mon, timeBuffer.tm_mday, 
+                                               timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
+  timeBuffer.tm_year -= 1900; // Convert from human year to POSIX year
+  timeBuffer.tm_mon -= 1; // month of struct tm is supposed to be "months since January"
+  time_t networkTime_s = mktime(&timeBuffer); // POSIX time in sec
+  timeval rtcTime = {networkTime_s, 0};
+  settimeofday(&rtcTime, NULL); // Update RTC time value
 
-    timeBuffer.tm_year -= 1900; // Convert from human year to POSIX year
-    timeBuffer.tm_mon -= 1; // month of struct tm is supposed to be "months since January"
-    time_t networkTime_s = mktime(&timeBuffer); // POSIX time in sec
-    time_t time_s = networkTime_s - (now_s - timeAtMeasure_s); // POSIX time in sec at 1st measurement
-    PRINTLN("Network time in sec: ", networkTime_s);
-    tm shiftedTime = *localtime(&time_s); // convert from time_t back to struct tm
+  struct tm now;
+  getLocalTime(&now, 0); // This returns POSIX time
+  printf("System time: %04d-%02d-%02dT%02d:%02d:%02dZ\r\n", now.tm_year + 1900, now.tm_mon + 1, now.tm_mday, 
+                                                       now.tm_hour, now.tm_min, now.tm_sec);
+  LumaVibe_keepAlive();
+  return LUMAVIBE_ERROR_NONE;
+}
 
-    // Export time for further use (i.e. packing). Format: 2020-03-26T18:37:00Z
-    sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", shiftedTime.tm_year + 1900, shiftedTime.tm_mon + 1, shiftedTime.tm_mday, 
-                                                        shiftedTime.tm_hour, shiftedTime.tm_min, shiftedTime.tm_sec);
-    PRINTF("Time at measurement: %04d-%02d-%02dT%02d:%02d:%02dZ\r\n", shiftedTime.tm_year, shiftedTime.tm_mon + 1, shiftedTime.tm_mday, 
-                                                                    shiftedTime.tm_hour, shiftedTime.tm_min, shiftedTime.tm_sec);
-    timeval rtcTime = {networkTime_s, 0}; 
-    settimeofday(&rtcTime, NULL); // Update RTC time value
-    if (_timeNeverSynced) {
-      _timeNeverSynced = false;
-    }
-  }
-  
+//
+static LumaVibe_Error_t LumaVibe_getTimeStamp(time_t timeAtMeasure_s, char timeStamp[21]) {
+  // TODO: handle possible error
+  // Month of time coming from network is the actual month, month of struct tm is "months since January"
+  tm timeBuffer = *localtime(&timeAtMeasure_s);
+  sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", timeBuffer.tm_year + 1900, timeBuffer.tm_mon + 1, timeBuffer.tm_mday, 
+                                                      timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);  
   PRINTF("timestamp: %s\r\n", timeStamp);
   LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
