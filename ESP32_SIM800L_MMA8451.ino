@@ -20,14 +20,12 @@
 
 xTaskHandle mainTaskHandle = NULL;
 xTaskHandle setupTaskHandle = NULL;
-xTaskHandle idleTaskHandle = NULL;
 
 void printLocalTime(void);
 
 void setup() { // takes 33ms
 void setup() {
   xTaskCreatePinnedToCore(LumaVibe_setup, str(LumaVibe_setup), 20000, NULL, 5, &setupTaskHandle, 1);
-  xTaskCreatePinnedToCore(LumaVibe_idle, str(LumaVibe_idle), 2000, NULL, 1, &idleTaskHandle, 1);
   vTaskDelete(NULL);
 }
 
@@ -37,11 +35,6 @@ void loop() {
   vTaskDelete(NULL);
 }
 
-void LumaVibe_idle(void *param) {
-  for (;;) {
-    delay(1);
-  }
-}
 
 void LumaVibe_setup(void *param) {
   uint32_t setupTimer = millis();
