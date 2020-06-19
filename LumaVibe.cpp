@@ -571,13 +571,18 @@ static LumaVibe_Error_t LumaVibe_setupModem() {
 static LumaVibe_Error_t LumaVibe_syncLocalTime(void) {
   // Month of time coming from network is the actual month, month of struct tm is "months since January"
   struct tm timeBuffer = {0};
+  float timezone;
   bool isNetWorkTimeReceived = false;
   uint8_t syncTry = 3;
   PRINTS("Syncing time with network\r\n");
   do {
-    isNetWorkTimeReceived = modem.getGsmLocationTime(&timeBuffer.tm_year, &timeBuffer.tm_mon, &timeBuffer.tm_mday,
-                                                      &timeBuffer.tm_hour, &timeBuffer.tm_min, &timeBuffer.tm_sec);
+    isNetWorkTimeReceived = modem.getNetworkTime(&timeBuffer.tm_year, &timeBuffer.tm_mon, &timeBuffer.tm_mday,
+                                                      &timeBuffer.tm_hour, &timeBuffer.tm_min, &timeBuffer.tm_sec, &timezone);
     LumaVibe_keepAlive();
+    isNetWorkTimeReceived = modem.getGsmLocationTime(&timeBuffer.tm_year, &timeBuffer.tm_mon, &timeBuffer.tm_mday,
+                                                      &timeBuffer.tm_hour, &timeBuffer.tm_min, &timeBuffer.tm_sec);  
+    LumaVibe_keepAlive();
+    Serial.printf("timezone: %.2f\r\n", timezone);
   } while (false == isNetWorkTimeReceived && syncTry-->0);
   if (false == isNetWorkTimeReceived) esp_restart();
   PRINTS("Network time retrieved: ");
@@ -585,6 +590,7 @@ static LumaVibe_Error_t LumaVibe_syncLocalTime(void) {
                                                timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
   timeBuffer.tm_year -= 1900; // Convert from human year to POSIX year
   timeBuffer.tm_mon -= 1; // month of struct tm is supposed to be "months since January"
+  timeBuffer.tm_hour -= (int)timezone;
   time_t networkTime_s = mktime(&timeBuffer); // POSIX time in sec
   timeval rtcTime = {networkTime_s, 0};
   settimeofday(&rtcTime, NULL); // Update RTC time value
