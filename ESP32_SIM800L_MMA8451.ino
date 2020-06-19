@@ -108,6 +108,10 @@ void LumaVibe_main(void *param) {
     
     if (LUMAVIBE_ERROR_NONE != err)
       LumaVibe_LOG_ERROR(err);
+
+    esp_sleep_wakeup_cause_t wakeCause = esp_sleep_get_wakeup_cause();
+    if (wakeCause == ESP_SLEEP_WAKEUP_GPIO) g_accelInterruptFlag = true;
+    PRINTF("Accel Flag: %d\r\n", g_accelInterruptFlag);
     
     LumaVibe_setLED(CRGB::Aqua);
     uint32_t bytesPacked;
