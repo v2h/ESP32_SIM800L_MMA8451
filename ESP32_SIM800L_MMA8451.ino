@@ -24,7 +24,6 @@ xTaskHandle setupTaskHandle = NULL;
 
 void printLocalTime(void);
 
-void setup() { // takes 33ms
 void setup() {
   xTaskCreatePinnedToCore(LumaVibe_setup, str(LumaVibe_setup), 20000, NULL, 1, &setupTaskHandle, 1);
   vTaskDelete(NULL);
@@ -36,11 +35,11 @@ void loop() {
   vTaskDelete(NULL);
 }
 
-
 void LumaVibe_setup(void *param) {
   esp_task_wdt_delete(&setupTaskHandle);
   uint32_t setupTimer = millis();
   SerialUSB.begin(115200);
+  delay(2000);
   SerialUSB.println("MAC address: " + WiFi.macAddress());
   SerialUSB.println("Firmware version: " + String(FIRMWARE_VERSION));
   Serial.print("Setup: priority = ");
@@ -96,9 +95,6 @@ void LumaVibe_main(void *param) {
       LumaVibe_goToSleep();
     }
 
-    esp_sleep_wakeup_cause_t wakeCause = esp_sleep_get_wakeup_cause();
-    if (wakeCause == ESP_SLEEP_WAKEUP_GPIO) g_accelInterruptFlag = true;
-  
     uint64_t start = millis();
     LumaVibe_Error_t err;
 
