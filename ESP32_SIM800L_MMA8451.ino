@@ -17,6 +17,7 @@
 #include "debug_macros.h"
 #include "ota_updater.h"
 #include "helper_macros.h"
+#include "esp_task_wdt.h"
 
 xTaskHandle mainTaskHandle = NULL;
 xTaskHandle setupTaskHandle = NULL;
@@ -37,6 +38,7 @@ void loop() {
 
 
 void LumaVibe_setup(void *param) {
+  esp_task_wdt_delete(&setupTaskHandle);
   uint32_t setupTimer = millis();
   SerialUSB.begin(115200);
   SerialUSB.println("MAC address: " + WiFi.macAddress());
@@ -82,6 +84,7 @@ void LumaVibe_setup(void *param) {
 }
 
 void LumaVibe_main(void *param) {
+  esp_task_wdt_delete(&mainTaskHandle);
   for (;;) {
     // This checks if the board wakes up from emergency-OTA
     if (g_isEmergency) {
