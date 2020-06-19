@@ -25,7 +25,7 @@ void printLocalTime(void);
 
 void setup() { // takes 33ms
 void setup() {
-  xTaskCreatePinnedToCore(LumaVibe_setup, str(LumaVibe_setup), 20000, NULL, 5, &setupTaskHandle, 1);
+  xTaskCreatePinnedToCore(LumaVibe_setup, str(LumaVibe_setup), 20000, NULL, 1, &setupTaskHandle, 1);
   vTaskDelete(NULL);
 }
 
