@@ -8,6 +8,7 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 #include "esp_attr.h"
 #include <WiFi.h>
 #include <Wire.h>
+#include <StreamDebugger.h>
 #include "debug_macros.h"
 
 #include "custom_src\phy\mma8451_i2c.h"
@@ -16,6 +17,7 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 
 #define MQTT_DATA_PACKBUFFER_SIZE  40000
 #define MQTT_ERROR_PACKBUFFER_SIZE 1000
+// #define DUMP_AT_COMMANDS // Uncomment to see AT debug prints
 
 /*
 // Global variables, extern-ed to main -------
@@ -36,7 +38,13 @@ static               char *PackBuffer = NULL;
 static               bool _timeNeverSynced = true;
 
 static MMA8451_t     accel;
+#ifdef DUMP_AT_COMMANDS
+  #include <StreamDebugger.h>
+  StreamDebugger debugger(SerialAT, Serial);
+  TinyGsm modem(debugger);
+#else
 static TinyGsm       modem(SerialAT);
+#endif
 static TinyGsmClient client(modem);
 static PubSubClient  mqtt(client);
 static CRGB          led[NUM_LEDS];
@@ -88,7 +96,6 @@ static LumaVibe_Error_t LumaVibe_syncLocalTime(void);
 static void watchDogISR(void) {
   esp_restart();
 }
-
 
 /*
 // Public/Extern-ed functions 
@@ -182,11 +189,7 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
   mqtt.setKeepAlive(200);
   mqtt.setServer(Settings.mqttBroker, 1883);
   PRINTF("broker: %s\r\n", s->mqttBroker);
-
-  // Turn of Bluetooth and Wifi
-  btStop();
-  WiFi.mode(WIFI_OFF);
-  
+ 
   FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS); // CAUTION
   FastLED.setBrightness(30);
     
@@ -220,11 +223,15 @@ LumaVibe_Error_t LumaVibe_begin() {
   ioconfig.pull_down_en = GPIO_PULLDOWN_DISABLE;
   ioconfig.intr_type = GPIO_INTR_NEGEDGE;
   gpio_config(&ioconfig);
-  gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
+
+  // gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
+  gpio_intr_enable((gpio_num_t)ACCEL_INTERRUPT_PIN);
 
   if (0 == g_bootCount) {
+    LumaVibe_Error_t err;
     LumaVibe_keepAlive();
-    LumaVibe_setupModem();
+    if (LUMAVIBE_ERROR_NONE != LumaVibe_setupModem()) esp_restart();
+    LumaVibe_keepAlive();
     LumaVibe_syncLocalTime();
   }
   LumaVibe_keepAlive();
@@ -322,12 +329,11 @@ LumaVibe_Error_t LumaVibe_publishData(const char *publishDataTopic, uint32_t byt
 void LumaVibe_getCommandsFromServer(const char *subscribeTopic) {
   mqtt.setCallback(mqttCallback);
   mqtt.subscribe(subscribeTopic);
-  LumaVibe_keepAlive();
-  LumaVibe_delay(2000);
-  mqtt.loop();
-  LumaVibe_delay(2000);
-  LumaVibe_keepAlive();
-  mqtt.loop();
+  uint64_t start = millis();
+  while (millis() - start < 5000) {
+    mqtt.loop();
+    LumaVibe_keepAlive();
+  }
   mqtt.disconnect();
 }
 
@@ -416,6 +422,7 @@ void LumaVibe_detachAccelInterrupt() {
 
 //
 void LumaVibe_enableAccelInterrupt() {
+  gpio_set_intr_type((gpio_num_t)Settings.accelInterruptPin, GPIO_INTR_NEGEDGE);
   gpio_intr_enable((gpio_num_t)Settings.accelInterruptPin);
 }
 
@@ -455,9 +462,8 @@ void LumaVibe_goToSleep(void) {
   PRINTS("Goodnight!\r\n");
   // SerialUSB.flush();
   SerialAT.end();
-  delay(3000);
+  delay(1000);
   LumaVibe_keepAlive();
-  //SerialUSB.end();
 
   LumaVibe_enableAccelInterrupt();
   esp_sleep_enable_timer_wakeup(Settings.sleepTime_ms * 1000);
@@ -529,7 +535,8 @@ static void LumaVibe_dumpSimInfo() {
 //
 static void LumaVibe_keepAlive() {
   timerWrite(watchDogTimer, 0);
-  delay(1);
+  uint64_t start = micros();
+  while (micros() - start < 100); // delay for 100us
 }
 
 //
@@ -538,10 +545,10 @@ static LumaVibe_Error_t LumaVibe_setupModem() {
   LumaVibe_enableModem();
   PRINTS("Setting up modem\r\n");
   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
-  LumaVibe_delay(3000);
   PRINTS("waiting for network...\r\n");
   uint32_t start = millis();
   while (!modem.isNetworkConnected() && millis() - start < 30000) {
+    delay(1000);
     LumaVibe_keepAlive();
   }
   if (!modem.isNetworkConnected())
@@ -552,13 +559,12 @@ static LumaVibe_Error_t LumaVibe_setupModem() {
   uint8_t gprsTry = 0;
   do {
     PRINT("retry..", gprsTry);
-    modem.gprsConnect("", "", "");
-    LumaVibe_delay(1000);
+    modem.gprsConnect(NETWORK_APN, "", "");
+    LumaVibe_keepAlive();
     gprsTry++;
   } while (!modem.isGprsConnected() && gprsTry < 5); // ATTENTION: WHILE LOOP!!
-  if (!modem.isGprsConnected()) {
+  if (!modem.isGprsConnected())
     return LUMAVIBE_ERROR_MODEM_GPRS_NOT_CONNECTED;
-  }
   PRINTS("\nGPRS connected\r\n");
 
   int16_t signalQuality = modem.getSignalQuality();
@@ -619,16 +625,15 @@ static LumaVibe_Error_t LumaVibe_getTimeStamp(time_t timeAtMeasure_s, char timeS
 //
 static LumaVibe_Error_t LumaVibe_connectMQTT() {
   uint8_t mqttTry = 0;
+  bool ret = false;
   do {
     PRINTS("Connecting MQTT\r\n");
     PRINT("..", mqttTry);
-    mqtt.connect("sim800l", "user", "mqtt");
-    //mqtt.connect(Settings.moduleID, Settings.mqttUserName, Settings.mqttPassword);
+    ret = mqtt.connect(Settings.moduleID, "user", "mqtt", NULL, 0, true, NULL, true); //Settings.moduleID
     PRINTLN("\nMQTT state: ", mqtt.state()); // Should be 0
     mqttTry++;
-    yield();
     LumaVibe_keepAlive();
-  } while (!mqtt.connected() && mqttTry < 5);
+  } while (!mqtt.connected() && ret && mqttTry < 5);
   if (!mqtt.connected()) {
     return LUMAVIBE_ERROR_MQTT_NOT_CONNECTED; 
   }
@@ -670,7 +675,7 @@ static LumaVibe_Error_t LumaVibe_publish(const char *publishTopic, uint32_t byte
   PRINTLN("Bytes Total: ", bytesToPublish);
   uint8_t *pointerToBuffer = (uint8_t *)PackBuffer;
   while (bytesToPublish) {
-    // PRINTLN("Bytes left: ", bytesToPublish);
+    PRINTLN("Bytes left: ", bytesToPublish);
     uint16_t bytesToWrite = (bytesToPublish > bytesToPublish % bytesPerWrite ? bytesPerWrite : bytesToPublish % bytesPerWrite);
     uint16_t bytesWritten = mqtt.write(pointerToBuffer, bytesToWrite);
     bytesToPublish -= bytesWritten;
@@ -748,13 +753,13 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
   mpack_done_map(&reader);
 
   MMA8451_standby(&accel);
-  MMA8451_setTransientThreshold_mG(&accel, transientThreshold);
-  MMA8451_setTransientDebounceCounter(&accel, transientDbCtr);
+  if (0 != transientThreshold) MMA8451_setTransientThreshold_mG(&accel, transientThreshold);
+  if (0 != transientDbCtr) MMA8451_setTransientDebounceCounter(&accel, transientDbCtr);
   MMA8451_setLowNoiseMode(&accel, lownoise ? MMA8451_LOWNOISE_ON : MMA8451_LOWNOISE_OFF);
   MMA8451_setRange(&accel, (MMA8451_Range_t)range);
   MMA8451_active(&accel);
 
-  LumaVibe_setPeriod(period);
+  if (0 != period) LumaVibe_setPeriod(period);
 
   PRINTLN("sender: ", sender);
   PRINTLN("_msgid: ", _msgid);
