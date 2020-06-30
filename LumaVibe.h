@@ -9,6 +9,7 @@
 #define TINY_GSM_MODEM_SIM800
 #define TINY_GSM_USE_GPRS     true
 #define TINY_GSM_USE_WIFI     false
+// #define TINY_GSM_DEBUG        Serial // uncomment to see debugs, BUT WILL TRIGGER WDT
 #include <TinyGsmClient.h> // https://github.com/vshymanskyy/TinyGSM
 
 #include "PubSubClient.h"  // https://github.com/knolleary/pubsubclient
