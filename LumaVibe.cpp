@@ -179,6 +179,7 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
   esp_err_t err = MMA8451_init(&accel, s->accelSCL, s->accelSDA, s->accelAddress);
   if (ESP_OK != err) return LUMAVIBE_ERROR_SENSOR_INIT;
 
+  mqtt.setKeepAlive(200);
   mqtt.setServer(Settings.mqttBroker, 1883);
   PRINTF("broker: %s\r\n", s->mqttBroker);
 
