@@ -39,6 +39,7 @@ void LumaVibe_setup(void *param) {
   esp_task_wdt_delete(&setupTaskHandle);
   uint32_t setupTimer = millis();
   SerialUSB.begin(115200);
+  SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
   delay(2000);
   SerialUSB.println("MAC address: " + WiFi.macAddress());
   SerialUSB.println("Firmware version: " + String(FIRMWARE_VERSION));

@@ -461,7 +461,7 @@ void LumaVibe_goToSleep(void) {
   LumaVibe_keepAlive();
   PRINTS("Goodnight!\r\n");
   // SerialUSB.flush();
-  SerialAT.end();
+  //SerialAT.end();
   delay(1000);
   LumaVibe_keepAlive();
 
@@ -544,7 +544,7 @@ static LumaVibe_Error_t LumaVibe_setupModem() {
   LumaVibe_setPowerBoostKeepOn(true);
   LumaVibe_enableModem();
   PRINTS("Setting up modem\r\n");
-  SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
+  //SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
   PRINTS("waiting for network...\r\n");
   uint32_t start = millis();
   while (!modem.isNetworkConnected() && millis() - start < 30000) {
