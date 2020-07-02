@@ -8,7 +8,7 @@
 #include "LumaVibe.h"
 
 #define TIMEOUT_MINUTE_TO_MS (1 * 60 * 1000)
-#define SLEEPTIME_MINUTE_TO_uS (60 * 60 * 1000000)
+#define SLEEPTIME_MINUTE_TO_uS (3600000000ULL) // 1 hour
 
 #define SSID "SVESPSERVICE"
 #define PASSWORD "2JbTC9sCRkSnRKCm"
