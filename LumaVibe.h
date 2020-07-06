@@ -54,6 +54,9 @@ typedef struct {
   char     moduleType[16];
   uint8_t  msgType;
   char     format[8];
+  char     publishDataTopic[50];
+  char     publishErrorTopic[50];
+  char     subscribeTopic[50];
 } LumaVibe_Settings_t;
 
 bool LumaVibe_setPowerBoostKeepOn(bool en);
@@ -65,14 +68,14 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s);
 LumaVibe_Error_t LumaVibe_begin();
 LumaVibe_Error_t LumaVibe_measure(time_t *timeAtMeasure_s);
 LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked);
-LumaVibe_Error_t LumaVibe_publishData(const char *publishDataTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite);
-void LumaVibe_getCommandsFromServer(const char *subscribeTopic);
+LumaVibe_Error_t LumaVibe_publishData(uint32_t bytesToPublish, uint16_t bytesPerWrite);
+void LumaVibe_getCommandsFromServer();
 void LumaVibe_clearAccelInterrupt();
 void LumaVibe_restart();
 void LumaVibe_logError(LumaVibe_Error_t error, uint16_t line);
 uint8_t LumaVibe_countNetworkError(void);
 LumaVibe_Error_t LumaVibe_packError(uint32_t *bytesPacked);
-LumaVibe_Error_t LumaVibe_publishError(const char *publishErrorTopic, int32_t bytesToPublish, uint16_t bytesPerWrite);
+LumaVibe_Error_t LumaVibe_publishError(int32_t bytesToPublish, uint16_t bytesPerWrite);
 uint8_t LumaVibe_countError(void);
 void LumaVibe_clearError(void);
 void LumaVibe_detachAccelInterrupt();

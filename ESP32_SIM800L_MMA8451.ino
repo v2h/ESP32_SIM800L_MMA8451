@@ -64,7 +64,10 @@ void LumaVibe_setup(void *param) {
     /*moduleID[13]*/          "SV010_000000",
     /*moduleType[16]*/        "Solar Vibe 1.1",
     /*msgType*/               2,
-    /*format[5]*/             "int16"
+    /*format[5]*/             "int16",
+    /*publishDataTopic*/      "ngd/demo/HSRW_Hung/data",
+    /*publishErrorTopic*/     "ngd/demo/HSRW_Hung/error",
+    /*subscribeTopic*/        "ngd/demo/HSRW_Hung/command"
   };
 
   LumaVibe_Error_t err; 
@@ -119,12 +122,12 @@ void LumaVibe_main(void *param) {
     PRINTLN("Packed Bytes: ", bytesPacked);
 
     LumaVibe_setLED(CRGB::Green);
-    err = LumaVibe_publishData("ngd/demo/HSRW_Hung/data", bytesPacked, 512);
+    err = LumaVibe_publishData(bytesPacked, 512);
     
     if (LUMAVIBE_ERROR_NONE != err)
       LumaVibe_LOG_ERROR(err);
     
-    LumaVibe_getCommandsFromServer("ngd/demo/HSRW_Hung/command");
+    LumaVibe_getCommandsFromServer();
     
     printLocalTime();
 
@@ -148,7 +151,7 @@ void LumaVibe_main(void *param) {
         if (LUMAVIBE_ERROR_NONE != err) {
           LumaVibe_LOG_ERROR(err);
         }
-        err = LumaVibe_publishError("ngd/demo/HSRW_Hung/error", bytesPacked, bytesPacked);
+        err = LumaVibe_publishError(bytesPacked, bytesPacked);
         if (LUMAVIBE_ERROR_NONE != err) {
           LumaVibe_LOG_ERROR(err);
         } else {

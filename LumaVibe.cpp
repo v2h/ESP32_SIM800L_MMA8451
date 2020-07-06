@@ -321,14 +321,14 @@ LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked
 }
 
 //
-LumaVibe_Error_t LumaVibe_publishData(const char *publishDataTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite) {
-  return LumaVibe_publish(publishDataTopic, bytesToPublish, bytesPerWrite);
+LumaVibe_Error_t LumaVibe_publishData(uint32_t bytesToPublish, uint16_t bytesPerWrite) {
+  return LumaVibe_publish(Settings.publishDataTopic, bytesToPublish, bytesPerWrite);
 }
 
 //
-void LumaVibe_getCommandsFromServer(const char *subscribeTopic) {
+void LumaVibe_getCommandsFromServer() {
   mqtt.setCallback(mqttCallback);
-  mqtt.subscribe(subscribeTopic);
+  mqtt.subscribe(Settings.subscribeTopic);
   uint64_t start = millis();
   while (millis() - start < 5000) {
     mqtt.loop();
@@ -400,8 +400,8 @@ LumaVibe_Error_t LumaVibe_packError(uint32_t *bytesPacked) {
 }
 
 //
-LumaVibe_Error_t LumaVibe_publishError(const char *publishErrorTopic, int32_t bytesToPublish, uint16_t bytesPerWrite) {
-  return LumaVibe_publish(publishErrorTopic, bytesToPublish, bytesPerWrite);
+LumaVibe_Error_t LumaVibe_publishError(int32_t bytesToPublish, uint16_t bytesPerWrite) {
+  return LumaVibe_publish(Settings.publishErrorTopic, bytesToPublish, bytesPerWrite);
 }
 
 //
