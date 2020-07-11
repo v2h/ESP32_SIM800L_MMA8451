@@ -42,7 +42,7 @@
 #define MAX_ERROR_COUNT (ERROR_STREAM_SIZE - 4)
 #define MAX_NETWORK_ERROR_COUNT (MAX_ERROR_COUNT - 10)
 
-#define FIRMWARE_VERSION "SolarVibe_FW_1.00.1"
+#define FIRMWARE_VERSION "SolarVibe_FW_1.00.2"
 #define NETWORK_APN "iot.1nce.net"
 
 #endif // LUMAVIBE_GLOBAL_H
