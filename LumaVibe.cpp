@@ -11,8 +11,8 @@ https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/
 #include <StreamDebugger.h>
 #include "debug_macros.h"
 
-#include "custom_src\phy\mma8451_i2c.h"
-#include "custom_src\bsp\mma8451_registers.h"
+#include "mma8451_i2c.h"
+#include "mma8451_registers.h"
 #include "ota_updater.h"
 
 #define MQTT_DATA_PACKBUFFER_SIZE  40000
