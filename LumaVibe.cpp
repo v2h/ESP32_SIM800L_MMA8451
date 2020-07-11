@@ -569,6 +569,8 @@ static LumaVibe_Error_t LumaVibe_setupModem() {
 
   int16_t signalQuality = modem.getSignalQuality();
   PRINTLN("Signal quality: ", signalQuality);
+
+  if (0 == (g_bootCount % 5)) LumaVibe_syncLocalTime();
   
   LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
