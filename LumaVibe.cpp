@@ -49,6 +49,7 @@ static TinyGsmClient client(modem);
 static PubSubClient  mqtt(client);
 static CRGB          led[NUM_LEDS];
 static hw_timer_t *  watchDogTimer = NULL;
+static bool          commandReceived = false;
 
 static const struct {
   const char * const timestamp    = "timestamp";
@@ -338,6 +339,11 @@ void LumaVibe_getCommandsFromServer() {
   while (millis() - start < 5000) {
     mqtt.loop();
     LumaVibe_keepAlive();
+  }
+  if (commandReceived) {
+    commandReceived = false;
+    if (mqtt.publish(Settings.subscribeTopic, "")) PRINTS("\ncommand cleared\r\n");
+    else PRINTS("\ncommand not cleared\r\n");
   }
   mqtt.disconnect();
 }
@@ -767,6 +773,8 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
   MMA8451_active(&accel);
 
   if (0 != period) LumaVibe_setPeriod(period);
+
+  commandReceived = true;
 
   PRINTLN("sender: ", sender);
   PRINTLN("_msgid: ", _msgid);
