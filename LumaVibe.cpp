@@ -66,6 +66,7 @@ static const struct {
   const char * const z_accel      = "z-accel";
   const char * const interrupted  = "interrupted";
   const char * const bootcount    = "bootcount";
+  const char * const charging     = "charging";
 } StringToPack;
 
 static const char * RangeStr[(uint8_t)MMA8451_RANGE_MAX] = { "2G", "4G", "8G"};
@@ -192,6 +193,9 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
  
   FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS); // CAUTION
   FastLED.setBrightness(30);
+
+  pinMode(CHARGING_PIN, INPUT_PULLUP);
+  pinMode(CHARGE_DONE_PIN, INPUT_PULLUP);
     
   return LUMAVIBE_ERROR_NONE;
 }
@@ -286,9 +290,10 @@ LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked
   PRINTS("Packing header\r\n");
   mpack_writer_t writer;
   mpack_writer_init(&writer, PackBuffer, MQTT_DATA_PACKBUFFER_SIZE);
-  mpack_start_map(&writer, 15);
+  mpack_start_map(&writer, 16);
   char timeStamp[21] = {0};
   LumaVibe_getTimeStamp(timeAtMeasure_s, timeStamp);
+  uint8_t chargeStatus = (uint8_t)((digitalRead(CHARGING_PIN) << 1) | digitalRead(CHARGE_DONE_PIN));
   // TODO: refactor this, from here..
   mpack_write_cstr(&writer, StringToPack.timestamp);    mpack_write_cstr(&writer, timeStamp);
   mpack_write_cstr(&writer, StringToPack.moduleID);     mpack_write_cstr(&writer, Settings.moduleID);
@@ -302,6 +307,7 @@ LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked
   mpack_write_cstr(&writer, StringToPack.range);        mpack_write_cstr(&writer, RangeStr[(uint8_t)accel.params.range]);
   mpack_write_cstr(&writer, StringToPack.divider);      mpack_write_u16(&writer, DividerStr[(uint8_t)accel.params.range]);
   mpack_write_cstr(&writer, StringToPack.bootcount);    mpack_write_u32(&writer, (uint32_t)g_bootCount);
+  mpack_write_cstr(&writer, StringToPack.charging);     mpack_write_u8(&writer, chargeStatus);
 
   // ..to here
   PRINTF("Packing array of %d elements\r\n", Settings.numberOfMeas);
