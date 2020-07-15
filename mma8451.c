@@ -53,7 +53,7 @@ esp_err_t MMA8451_readData(MMA8451_t * const mma, MMA8451_Data_t * data) {
     uint8_t buffer[6];
     ret = MMA8451_I2C_readReg8(mma->i2cAddress, MMA8451_REG_OUT_X_MSB, buffer, sizeof(*data));
     data->xi = (int16_t)(buffer[0] << 8 | buffer[1]);
-    data->yi = (int16_t)(buffer[2] << 8 | buffer[2]);
+    data->yi = (int16_t)(buffer[2] << 8 | buffer[3]);
     data->zi = (int16_t)(buffer[4] << 8 | buffer[5]);
     data->xi >>= 2;
     data->yi >>= 2;
