@@ -197,5 +197,9 @@ void ota_updater_begin(gpio_num_t interruptPin) {
   // Only reach here when connection has been established
   while (1) {
     ArduinoOTA.handle();
+    if (!WiFi.isConnected()) {
+      SerialUSB.println("Wifi not connected");
+      esp_restart();
+    }
   }
 }
