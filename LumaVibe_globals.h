@@ -14,6 +14,8 @@
 #define ACCEL_INTERRUPT_PIN 25
 #define ACCEL_SDA_PIN 21
 #define ACCEL_SCL_PIN 22
+#define CHARGING_PIN 14
+#define CHARGE_DONE_PIN 12
 
 #define MODEM_TX 27
 #define MODEM_RX 26
