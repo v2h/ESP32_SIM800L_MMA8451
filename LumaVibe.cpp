@@ -199,6 +199,8 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
 // Acceleration settings should only be changed on the node-red side
 // Don't set ODR less than 100Hz
 LumaVibe_Error_t LumaVibe_begin() {
+  if (MMA8451_softwareReset(&accel) != ESP_OK) return LUMAVIBE_ERROR_SENSOR_SETTING;
+  delay(100);
   uint8_t whoami = 0xFF;
   MMA8451_I2C_readReg8(accel.i2cAddress, MMA8451_REG_WHOAMI, &whoami, 1);
   PRINTF("who am i: %d\r\n", whoami);
