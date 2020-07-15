@@ -123,10 +123,10 @@ void LumaVibe_main(void *param) {
 
     LumaVibe_setLED(CRGB::Green);
     err = LumaVibe_publishData(bytesPacked, 512);
-    
+
     if (LUMAVIBE_ERROR_NONE != err)
       LumaVibe_LOG_ERROR(err);
-    
+
     LumaVibe_getCommandsFromServer();
     
     printLocalTime();
