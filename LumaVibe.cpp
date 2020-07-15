@@ -191,7 +191,7 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
   mqtt.setKeepAlive(200);
   mqtt.setServer(Settings.mqttBroker, 1883);
   PRINTF("broker: %s\r\n", s->mqttBroker);
- 
+
   FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS); // CAUTION
   FastLED.setBrightness(30);
 
