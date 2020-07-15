@@ -233,10 +233,7 @@ LumaVibe_Error_t LumaVibe_begin() {
     LumaVibe_Error_t err;
     LumaVibe_keepAlive();
     if (LUMAVIBE_ERROR_NONE != LumaVibe_setupModem()) esp_restart();
-    LumaVibe_keepAlive();
-    LumaVibe_syncLocalTime();
   }
-  LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
 }
 
