@@ -78,7 +78,7 @@ esp_err_t MMA8451_setLowNoiseMode(MMA8451_t * const mma, MMA8451_LowNoise_t mode
 // Caution: range is limited to max. +/- 4G when LNOISE = 1
 esp_err_t MMA8451_setRange(MMA8451_t * const mma, MMA8451_Range_t range) {
     if (MMA8451_RANGE_8G == range && MMA8451_LOWNOISE_ON == mma->params.lowNoiseMode)
-        range = MMA8451_RANGE_4G; 
+        range = MMA8451_RANGE_4G;
     esp_err_t err = MMA8451_setBits_(mma, MMA8451_REG_XYZ_DATA_CFG, FS_MASK, range);
     if (ESP_OK == err)
         mma->params.range = range;
