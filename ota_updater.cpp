@@ -130,7 +130,7 @@ void ota_updater_begin(gpio_num_t interruptPin) {
 
   SerialUSB.println("\nBooting OTA");
   SerialUSB.printf("Timeout is set to %u sec\n", TIMEOUT_MINUTE_TO_MS / 1000);
-  SerialUSB.printf("deepsleep time is set to %u sec\n", SLEEPTIME_MINUTE_TO_uS / 1000000);
+  SerialUSB.printf("deepsleep time is set to %llu sec\n", SLEEPTIME_MINUTE_TO_uS / 1000000);
   SerialUSB.printf("\nSleep count: %d\n", sleepCount);
   SerialUSB.println("Tryinng to connect to WiFi..");
   WiFi.mode(WIFI_STA);
