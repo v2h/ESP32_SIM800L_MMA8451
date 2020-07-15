@@ -126,6 +126,8 @@ void ota_updater_begin(gpio_num_t interruptPin) {
       else if (error == OTA_CONNECT_ERROR) SerialUSB.println("Connect Failed");
       else if (error == OTA_RECEIVE_ERROR) SerialUSB.println("Receive Failed");
       else if (error == OTA_END_ERROR) SerialUSB.println("End Failed");
+      // Device will restart only when AP is turned off, that means
+      // firmware can be re-uploaded as long as device is connected
     });
 
   SerialUSB.println("\nBooting OTA");
@@ -165,8 +167,8 @@ void ota_updater_begin(gpio_num_t interruptPin) {
         SerialUSB.println("Wifi off");
       }
       SerialUSB.println("Sleeping\r\n");
-      delay(1000); // (!?)
       LumaVibe_clearLED();
+      delay(1000); // (!?)
       gpio_hold_en((gpio_num_t)LED_PIN);
       gpio_deep_sleep_hold_en();
       esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL); // (!?)
