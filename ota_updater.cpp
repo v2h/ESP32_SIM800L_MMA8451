@@ -153,6 +153,10 @@ void ota_updater_begin(gpio_num_t interruptPin) {
     // Check for timeout -> sleep
     if (millis() - currentTime_ms > TIMEOUT_MINUTE_TO_MS) { // Timeout
       sleepCount++;
+      if (2 == sleepCount) {
+        g_isEmergency = false;
+        esp_restart();
+      }
       SerialUSB.println("Connection Failed! Going to deep sleep...");
       if (btStop()) {
         SerialUSB.println("Bluetooth stopped");
