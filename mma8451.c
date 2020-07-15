@@ -42,7 +42,7 @@ esp_err_t MMA8451_active(MMA8451_t * const mma) {
 }
 
 esp_err_t MMA8451_softwareReset(MMA8451_t * const mma) {
-    uint8_t regVal = ST_MASK;
+    uint8_t regVal = RST_MASK;
     return MMA8451_I2C_writeReg8(mma->i2cAddress, MMA8451_REG_CTRL_REG2, &regVal, 1);
 }
 
