@@ -25,7 +25,7 @@ xTaskHandle setupTaskHandle = NULL;
 void printLocalTime(void);
 
 void setup() {
-  xTaskCreatePinnedToCore(LumaVibe_setup, str(LumaVibe_setup), 20000, NULL, 1, &setupTaskHandle, 1);
+  xTaskCreatePinnedToCore(LumaVibe_setup, str(LumaVibe_setup), 30000, NULL, 1, &setupTaskHandle, 1);
   vTaskDelete(NULL);
 }
 
