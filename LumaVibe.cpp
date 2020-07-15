@@ -593,12 +593,12 @@ static LumaVibe_Error_t LumaVibe_syncLocalTime(void) {
     isNetWorkTimeReceived = modem.getNetworkTime(&timeBuffer.tm_year, &timeBuffer.tm_mon, &timeBuffer.tm_mday,
                                                       &timeBuffer.tm_hour, &timeBuffer.tm_min, &timeBuffer.tm_sec, &timezone);
     LumaVibe_keepAlive();
-    isNetWorkTimeReceived = modem.getGsmLocationTime(&timeBuffer.tm_year, &timeBuffer.tm_mon, &timeBuffer.tm_mday,
+    modem.getGsmLocationTime(&timeBuffer.tm_year, &timeBuffer.tm_mon, &timeBuffer.tm_mday,
                                                       &timeBuffer.tm_hour, &timeBuffer.tm_min, &timeBuffer.tm_sec);  
     LumaVibe_keepAlive();
     Serial.printf("timezone: %.2f\r\n", timezone);
   } while (false == isNetWorkTimeReceived && syncTry-->0);
-  if (false == isNetWorkTimeReceived) esp_restart();
+  if (false == isNetWorkTimeReceived) return LUMAVIBE_ERROR_NETWORK_TIME_SYNC; // TODO: handle error
   PRINTS("Network time retrieved: ");
   PRINTF("%04d-%02d-%02dT%02d:%02d:%02dZ\r\n", timeBuffer.tm_year, timeBuffer.tm_mon, timeBuffer.tm_mday, 
                                                timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
