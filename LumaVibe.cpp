@@ -630,7 +630,7 @@ static LumaVibe_Error_t LumaVibe_getTimeStamp(uint32_t millisAtMeasure, char tim
   tm now;
   getLocalTime(&now); // POSIX time from RTC
   time_t timeNow_s = mktime(&now);
-  time_t timeAtMeasure_s = timeNow_s - (time_t)(millisAtMeasure / 1000);
+  time_t timeAtMeasure_s = timeNow_s - (time_t)((millis() - millisAtMeasure) / 1000);
   PRINT("\ntime now: ", timeNow_s);
   PRINT("\ntime at measure: ", timeAtMeasure_s);
   PRINT("\nmilisAtMeasure: ", millisAtMeasure);
