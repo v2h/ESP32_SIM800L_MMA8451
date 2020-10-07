@@ -192,7 +192,9 @@ LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s) {
   mqtt.setServer(Settings.mqttBroker, 1883);
   PRINTF("broker: %s\r\n", s->mqttBroker);
 
-  FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS); // CAUTION
+  // Using WS2812B instead of NEOPIXEL will make the LED show wrong colors
+  // CAUTION: template
+  FastLED.addLeds<NEOPIXEL, LED_PIN>(led, NUM_LEDS);
   FastLED.setBrightness(30);
 
   pinMode(CHARGING_PIN, INPUT_PULLUP);
