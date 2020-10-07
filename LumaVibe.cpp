@@ -634,7 +634,7 @@ static LumaVibe_Error_t LumaVibe_getTimeStamp(uint32_t millisAtMeasure, char tim
   PRINT("\ntime now: ", timeNow_s);
   PRINT("\ntime at measure: ", timeAtMeasure_s);
   PRINT("\nmilisAtMeasure: ", millisAtMeasure);
-  tm *timeBuffer = localtime(&timeAtMeasure_s);
+  tm *timeBuffer = gmtime(&timeAtMeasure_s);
 
   sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", timeBuffer->tm_year + 1900, timeBuffer->tm_mon + 1, timeBuffer->tm_mday, 
                                                       timeBuffer->tm_hour, timeBuffer->tm_min, timeBuffer->tm_sec);  
