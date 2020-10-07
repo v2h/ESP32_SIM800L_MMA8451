@@ -84,7 +84,7 @@ static const uint16_t DividerStr[(uint8_t)MMA8451_RANGE_MAX] = {
 static void LumaVibe_dumpSimInfo();
 static void LumaVibe_keepAlive();
 static LumaVibe_Error_t LumaVibe_setupModem();
-static LumaVibe_Error_t LumaVibe_getTimeStamp(time_t timeAtMeasure_s, char timeStamp[21]);
+static LumaVibe_Error_t LumaVibe_getTimeStamp(uint32_t millisAtMeasure, char timeStamp[21]);
 static LumaVibe_Error_t LumaVibe_connectMQTT();
 static void LumaVibe_packArray(mpack_writer_t *writer, const char *entryNames[3], const uint16_t length);
 static LumaVibe_Error_t LumaVibe_publish(const char *publishTopic, uint32_t bytesToPublish, uint16_t bytesPerWrite);
@@ -245,16 +245,13 @@ LumaVibe_Error_t LumaVibe_begin() {
 }
 
 //
-LumaVibe_Error_t LumaVibe_measure(time_t *timeAtMeasure_s) {
+LumaVibe_Error_t LumaVibe_measure(uint32_t *millisAtMeasure) {
   if (NULL != AccelDataPtr) 
     free(AccelDataPtr);
   AccelDataPtr = (MMA8451_Data_t *)malloc(Settings.numberOfMeas * sizeof(MMA8451_Data_t));
   if (NULL == AccelDataPtr) {
     return LUMAVIBE_ERROR_NOT_ENOUGH_MEMORY;
   }
-  struct tm now;
-  getLocalTime(&now, 0);
-  *timeAtMeasure_s = mktime(&now);
 
   uint8_t measureInterval_ms = 1000 / Settings.measureFrequency;
   MMA8451_Data_t data;
@@ -276,11 +273,12 @@ LumaVibe_Error_t LumaVibe_measure(time_t *timeAtMeasure_s) {
   }
   PRINTF("Stop time: %lu\r\n", millis());
   LumaVibe_keepAlive();
+  *millisAtMeasure = startTime;
   return LUMAVIBE_ERROR_NONE;
 }
 
 // 
-LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked) {
+LumaVibe_Error_t LumaVibe_packData(uint32_t millisAtMeasure, uint32_t *bytesPacked) {
   LumaVibe_Error_t err = LumaVibe_setupModem();
   if (LUMAVIBE_ERROR_NONE != err) {
     return err;
@@ -295,7 +293,7 @@ LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked
   mpack_writer_init(&writer, PackBuffer, MQTT_DATA_PACKBUFFER_SIZE);
   mpack_start_map(&writer, 16);
   char timeStamp[21] = {0};
-  LumaVibe_getTimeStamp(timeAtMeasure_s, timeStamp);
+  LumaVibe_getTimeStamp(millisAtMeasure, timeStamp);
   uint8_t chargeStatus = (uint8_t)((digitalRead(CHARGING_PIN) << 1) | digitalRead(CHARGE_DONE_PIN));
   // TODO: refactor this, from here..
   mpack_write_cstr(&writer, StringToPack.timestamp);    mpack_write_cstr(&writer, timeStamp);
@@ -626,13 +624,21 @@ static LumaVibe_Error_t LumaVibe_syncLocalTime(void) {
 }
 
 //
-static LumaVibe_Error_t LumaVibe_getTimeStamp(time_t timeAtMeasure_s, char timeStamp[21]) {
+static LumaVibe_Error_t LumaVibe_getTimeStamp(uint32_t millisAtMeasure, char timeStamp[21]) {
   // TODO: handle possible error
   // Month of time coming from network is the actual month, month of struct tm is "months since January"
-  tm timeBuffer = *localtime(&timeAtMeasure_s);
-  sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", timeBuffer.tm_year + 1900, timeBuffer.tm_mon + 1, timeBuffer.tm_mday, 
-                                                      timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);  
-  PRINTF("timestamp: %s\r\n", timeStamp);
+  tm now;
+  getLocalTime(&now); // POSIX time from RTC
+  time_t timeNow_s = mktime(&now);
+  time_t timeAtMeasure_s = timeNow_s - (time_t)(millisAtMeasure / 1000);
+  PRINT("\ntime now: ", timeNow_s);
+  PRINT("\ntime at measure: ", timeAtMeasure_s);
+  PRINT("\nmilisAtMeasure: ", millisAtMeasure);
+  tm *timeBuffer = localtime(&timeAtMeasure_s);
+
+  sprintf(timeStamp,"%04d-%02d-%02dT%02d:%02d:%02dZ", timeBuffer->tm_year + 1900, timeBuffer->tm_mon + 1, timeBuffer->tm_mday, 
+                                                      timeBuffer->tm_hour, timeBuffer->tm_min, timeBuffer->tm_sec);  
+  PRINTF("\ntimestamp: %s\r\n", timeStamp);
   LumaVibe_keepAlive();
   return LUMAVIBE_ERROR_NONE;
 }

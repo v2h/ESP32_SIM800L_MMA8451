@@ -103,8 +103,8 @@ void LumaVibe_main(void *param) {
     LumaVibe_Error_t err;
 
     LumaVibe_setLED(CRGB::Purple);
-    time_t timeAtMeasure;
-    err = LumaVibe_measure(&timeAtMeasure);
+    uint32_t millisAtMeasure;
+    err = LumaVibe_measure(&millisAtMeasure);
     
     if (LUMAVIBE_ERROR_NONE != err)
       LumaVibe_LOG_ERROR(err);
@@ -115,7 +115,7 @@ void LumaVibe_main(void *param) {
     
     LumaVibe_setLED(CRGB::Aqua);
     uint32_t bytesPacked;
-    err = LumaVibe_packData(timeAtMeasure, &bytesPacked);
+    err = LumaVibe_packData(millisAtMeasure, &bytesPacked);
     
     if (LUMAVIBE_ERROR_NONE != err)
       LumaVibe_LOG_ERROR(err);

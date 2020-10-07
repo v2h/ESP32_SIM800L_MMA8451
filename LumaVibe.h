@@ -67,8 +67,8 @@ void LumaVibe_enableModem();
 
 LumaVibe_Error_t LumaVibe_init(LumaVibe_Settings_t * const s);
 LumaVibe_Error_t LumaVibe_begin();
-LumaVibe_Error_t LumaVibe_measure(time_t *timeAtMeasure_s);
-LumaVibe_Error_t LumaVibe_packData(time_t timeAtMeasure_s, uint32_t *bytesPacked);
+LumaVibe_Error_t LumaVibe_measure(uint32_t *millisAtMeasure);
+LumaVibe_Error_t LumaVibe_packData(uint32_t millisAtMeasure, uint32_t *bytesPacked);
 LumaVibe_Error_t LumaVibe_publishData(uint32_t bytesToPublish, uint16_t bytesPerWrite);
 void LumaVibe_getCommandsFromServer();
 void LumaVibe_clearAccelInterrupt();
