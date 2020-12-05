@@ -602,9 +602,10 @@ static LumaVibe_Error_t LumaVibe_syncLocalTime(void) {
     modem.getGsmLocationTime(&timeBuffer.tm_year, &timeBuffer.tm_mon, &timeBuffer.tm_mday,
                                                       &timeBuffer.tm_hour, &timeBuffer.tm_min, &timeBuffer.tm_sec);  
     LumaVibe_keepAlive();
-    Serial.printf("timezone: %.2f\r\n", timezone);
+    PRINT("..", syncTry);
+    PRINTF("\ntimezone: %.2f\r\n", timezone);
   } while (false == isNetWorkTimeReceived && syncTry-->0);
-  if (false == isNetWorkTimeReceived) return LUMAVIBE_ERROR_NETWORK_TIME_SYNC; // TODO: handle error
+  if (false == isNetWorkTimeReceived || 2004 == timeBuffer.tm_year) return LUMAVIBE_ERROR_NETWORK_TIME_SYNC; // TODO: handle error
   PRINTS("Network time retrieved: ");
   PRINTF("%04d-%02d-%02dT%02d:%02d:%02dZ\r\n", timeBuffer.tm_year, timeBuffer.tm_mon, timeBuffer.tm_mday, 
                                                timeBuffer.tm_hour, timeBuffer.tm_min, timeBuffer.tm_sec);
