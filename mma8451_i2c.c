@@ -8,6 +8,16 @@
 #define ACK_CHECK_EN  0x1              /*!< I2C master will check ack from slave*/
 #define ACK_CHECK_DIS 0x0              /*!< I2C master will not check ack from slave */
 
+// #define MMA8451_I2C_DEBUG
+#ifdef MMA8451_I2C_DEBUG
+#define MMA8451_I2C_log(err) \
+    do { \
+        if (ESP_OK != err) printf("%s: error at line: %d\n", __FILE__, __LINE__); \
+    } while(0)
+#else
+#define MMA8451_I2C_log(err)
+#endif
+
 esp_err_t MMA8451_I2C_init(uint8_t const scl, uint8_t const sda) {
     if (scl > GPIO_NUM_MAX || sda > GPIO_NUM_MAX) return ESP_FAIL;
     i2c_config_t i2cConfig = {
@@ -20,6 +30,7 @@ esp_err_t MMA8451_I2C_init(uint8_t const scl, uint8_t const sda) {
     };
     i2c_param_config(I2C_NUM_0, &i2cConfig);
     esp_err_t ret = i2c_driver_install(I2C_NUM_0, i2cConfig.mode, 0, 0, 0);
+    MMA8451_I2C_log(ret);
     return ret;
 }
 
@@ -37,6 +48,7 @@ esp_err_t MMA8451_I2C_readReg8(uint8_t const i2cAddress, uint8_t regAddr, uint8_
     i2c_master_stop(cmd);
     esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_PERIOD_MS);
     i2c_cmd_link_delete(cmd);
+    MMA8451_I2C_log(ret);
     return ret;
 }
 
@@ -52,5 +64,6 @@ esp_err_t MMA8451_I2C_writeReg8(uint8_t const i2cAddress, uint8_t regAddr, uint8
     i2c_master_stop(cmd);
     esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_PERIOD_MS);
     i2c_cmd_link_delete(cmd);
+    MMA8451_I2C_log(ret);
     return ret;
 }

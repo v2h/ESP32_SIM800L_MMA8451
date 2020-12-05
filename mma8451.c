@@ -1,8 +1,18 @@
-#include "mma8451.h"
 #include "mma8451_registers.h"
+#include "mma8451.h"
 #include "mma8451_i2c.h"
 
 // !TODO: HPF_OUT
+
+// #define MMA8451_DEBUG
+#ifdef MMA8451_DEBUG
+#define MMA8451_log(err) \
+    do { \
+        if (ESP_OK != err) printf("%s: error at line: %d\n", __FILE__, __LINE__); \
+    } while(0)
+#else
+#define MMA8451_log(err)
+#endif
 
 static esp_err_t MMA8451_setBits_(MMA8451_t * const mma, uint8_t regAddr, uint8_t mask, uint8_t value);
 
@@ -18,6 +28,7 @@ esp_err_t MMA8451_init(MMA8451_t * const mma, uint8_t const scl, uint8_t const s
         mma->params.transientDebouncCount   = 0;
         mma->params.transientThresholdCount = 0;
     }
+    MMA8451_log(ret);
     return ret;
 }
 
@@ -28,6 +39,7 @@ esp_err_t MMA8451_standby(MMA8451_t * const mma) {
     if (ESP_OK != ret) return ret;
     regVal &= ~ACTIVE_MASK; // same as reg._ACTIVE_BIT = 0 with reg of type Reg8_t
     ret = MMA8451_I2C_writeReg8(mma->i2cAddress, MMA8451_REG_CTRL_REG1, &regVal, 1);
+    MMA8451_log(ret);
     return ret;
 }
 
@@ -38,6 +50,7 @@ esp_err_t MMA8451_active(MMA8451_t * const mma) {
     if (ESP_OK != ret) return ret;
     regVal |= ACTIVE_MASK;
     ret = MMA8451_I2C_writeReg8(mma->i2cAddress, MMA8451_REG_CTRL_REG1, &regVal, 1);
+    MMA8451_log(ret);
     return ret;
 }
 
@@ -58,6 +71,7 @@ esp_err_t MMA8451_readData(MMA8451_t * const mma, MMA8451_Data_t * data) {
     data->xi >>= 2;
     data->yi >>= 2;
     data->zi >>= 2;
+    MMA8451_log(ret);
     return ret;
 }
 
@@ -65,6 +79,7 @@ esp_err_t MMA8451_setOverSamplingMode(MMA8451_t * const mma, MMA8451_Oversamplin
     esp_err_t err = MMA8451_setBits_(mma, MMA8451_REG_CTRL_REG2, MODS_MASK, mode);
     if (ESP_OK == err)
         mma->params.overSamplingMode = mode;
+    MMA8451_log(err);
     return err;
 }
 
@@ -72,6 +87,7 @@ esp_err_t MMA8451_setLowNoiseMode(MMA8451_t * const mma, MMA8451_LowNoise_t mode
     esp_err_t err = MMA8451_setBits_(mma, MMA8451_REG_CTRL_REG1, LNOISE_MASK, mode);
     if (ESP_OK == err)
         mma->params.lowNoiseMode = mode;
+    MMA8451_log(err);
     return err;
 }
 
@@ -82,6 +98,7 @@ esp_err_t MMA8451_setRange(MMA8451_t * const mma, MMA8451_Range_t range) {
     esp_err_t err = MMA8451_setBits_(mma, MMA8451_REG_XYZ_DATA_CFG, FS_MASK, range);
     if (ESP_OK == err)
         mma->params.range = range;
+    MMA8451_log(err);
     return err;
 }
 
@@ -90,6 +107,7 @@ esp_err_t MMA8451_setOutputDataRate(MMA8451_t * const mma, MMA8451_OutputDataRat
     esp_err_t err =  MMA8451_setBits_(mma, MMA8451_REG_CTRL_REG1, DR_MASK, odr);
     if (ESP_OK == err)
         mma->params.odr = odr;
+    MMA8451_log(err);
     return err;
 }
 
@@ -99,6 +117,7 @@ esp_err_t MMA8451_setHpfCutOff(MMA8451_t * const mma, MM8451_HpfCutoff_t cutoff)
     esp_err_t err = MMA8451_setBits_(mma, MMA8451_REG_HP_FILTER_CUTOFF, SEL_MASK, cutoff);
     if (ESP_OK == err)
         mma->params.hpfCutoff = cutoff;
+    MMA8451_log(err);
     return err;
 }
 
@@ -112,6 +131,7 @@ esp_err_t MMA8451_setTransientThresholdCounts(MMA8451_t * const mma, uint8_t thr
     esp_err_t err = MMA8451_I2C_writeReg8(mma->i2cAddress, MMA8451_REG_TRANSIENT_THS, &threshold, 1);
     if (ESP_OK == err)
         mma->params.transientThresholdCount = threshold;
+    MMA8451_log(err);
     return err;
 }
 
@@ -121,6 +141,7 @@ esp_err_t MMA8451_setTransientThreshold_mG(MMA8451_t * const mma, uint16_t thres
     esp_err_t err = MMA8451_I2C_writeReg8(mma->i2cAddress, MMA8451_REG_TRANSIENT_THS, &thresholdCount, 1);
     if (ESP_OK == err)
         mma->params.transientThresholdCount = thresholdCount;
+    MMA8451_log(err);
     return err;
 }
 
@@ -129,6 +150,7 @@ esp_err_t MMA8451_setTransientDebounceCounter(MMA8451_t * const mma, uint8_t val
     esp_err_t err = MMA8451_I2C_writeReg8(mma->i2cAddress, MMA8451_REG_TRANSIENT_COUNT, &value, 1);
     if (ESP_OK == err)
         mma->params.transientDebouncCount = value;
+    MMA8451_log(err);
     return err;
 }
 
@@ -160,6 +182,7 @@ esp_err_t MMA8451_enableTransientInterrupt(MMA8451_t * const mma, bool activeHig
     if (ESP_OK != ret) return ret;
     regVal = (useInt1) ? (regVal | INT_CFG_TRANS_MASK) : (regVal & (~INT_EN_TRANS_MASK));
     ret = MMA8451_I2C_writeReg8(mma->i2cAddress, MMA8451_REG_CTRL_REG5, &regVal, 1);
+    MMA8451_log(ret);
     return ret;
 }
 
@@ -171,5 +194,6 @@ static esp_err_t MMA8451_setBits_(MMA8451_t * const mma, uint8_t regAddr, uint8_
     regVal &= ~mask;
     regVal |= value;
     ret = MMA8451_I2C_writeReg8(mma->i2cAddress, regAddr, &regVal, 1);
+    MMA8451_log(ret);
     return ret;
 }
