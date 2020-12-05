@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "LumaVibe_globals.h"
 #include "esp32-hal-timer.h"
-#include "custom_src\bsp\mma8451.h"
+#include "mma8451.h"
 
 #define TINY_GSM_MODEM_SIM800
 #define TINY_GSM_USE_GPRS     true
