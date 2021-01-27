@@ -180,7 +180,7 @@ esp_err_t MMA8451_enableTransientInterrupt(MMA8451_t * const mma, bool activeHig
     // Map interrupt to output pin
     ret = MMA8451_I2C_readReg8(mma->i2cAddress, MMA8451_REG_CTRL_REG5, &regVal, 1);
     if (ESP_OK != ret) return ret;
-    regVal = (useInt1) ? (regVal | INT_CFG_TRANS_MASK) : (regVal & (~INT_EN_TRANS_MASK));
+    regVal = (useInt1) ? (regVal | INT_CFG_TRANS_MASK) : (regVal & (~INT_CFG_TRANS_MASK));
     ret = MMA8451_I2C_writeReg8(mma->i2cAddress, MMA8451_REG_CTRL_REG5, &regVal, 1);
     MMA8451_log(ret);
     return ret;
